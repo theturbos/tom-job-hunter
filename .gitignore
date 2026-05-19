@@ -1,0 +1,36 @@
+# Virtualenv
+.venv/
+venv/
+env/
+
+# Données utilisateur — RIEN dans data/ ne doit être commit
+# Les données sont sacrées : config, offres, candidatures, historique
+data/
+
+# Sauvegarde automatique (avant update)
+data_backup/
+
+# Lettres générées
+lettres/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Secrets & config locale
+.env
+*.key
+config.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

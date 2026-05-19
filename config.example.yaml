@@ -1,0 +1,96 @@
+# ═══════════════════════════════════════════════════════
+# TOM V2.0 — config.example.yaml
+# Copiez ce fichier vers data/config.yaml et remplissez
+# ═══════════════════════════════════════════════════════
+
+profile:
+  name: "Prénom Nom"
+  email: "prenom@email.com"
+  linkedin: "linkedin.com/in/votre-compte/"
+  phone: "+33 6 XX XX XX XX"
+  available: "Immédiat / Sept 2026"
+  skills:
+    - Python
+    - LLM
+    - RAG
+    - FP&A
+    - Power BI
+    - SQL
+    - VBA
+  education_main: "Master Stratégie & Management"
+  education_school: "Votre École / Université"
+
+preferences:
+  location:
+    city: "Paris"
+    country: "France"
+    department: "75"
+  priorities:
+    - "IA Stratégie"
+    - "Finance+IA"
+    - "Scale-up tech"
+  natural_language_prompt: "Head of AI en finance à Paris, CDI"
+  max_offer_age_days: 10
+  contract_types:
+    - CDI
+
+matching:
+  min_score: 6
+  # Personnalisez les labels des catégories (optionnel)
+  cat_a_label: "Tech & IA"
+  cat_b_label: "Secteur"
+
+# ─────────────────────────────────────────────────────────
+# API KEYS — Remplissez au moins UN provider LLM
+# ─────────────────────────────────────────────────────────
+
+api:
+  # Sources d'offres
+  france_travail:
+    client_id: ""
+    client_secret: ""
+  serpapi:
+    api_key: ""
+
+  # Providers LLM (OpenAI-compatible)
+  # Tous ces providers utilisent le même format d'API que OpenAI.
+  # Remplissez la clé du provider que vous voulez utiliser.
+  openai:
+    api_key: ""
+  mistral:
+    api_key: ""       # Tier gratuit : 1 milliard tokens/mois
+  deepseek:
+    api_key: ""       # Très bon marché, excellent en français
+  openrouter:
+    api_key: ""       # Agrège Claude, Gemini, GPT, etc.
+  groq:
+    api_key: ""       # Très rapide, gratuit (limité)
+  custom:
+    api_key: ""       # N'importe quelle API OpenAI-compatible
+
+# ─────────────────────────────────────────────────────────
+# LLM — Choisissez votre provider principal
+# ─────────────────────────────────────────────────────────
+
+llm:
+  # ollama | mistral | openai | deepseek | openrouter | groq | custom | none
+  provider: "ollama"
+
+  # Modèle utilisé par votre provider (ignoré si ollama)
+  # - mistral:   mistral-small-latest (gratuit), mistral-medium-latest
+  # - openai:    gpt-4o-mini, gpt-4o
+  # - deepseek:  deepseek-chat, deepseek-reasoner
+  # - openrouter: openai/gpt-4o-mini, anthropic/claude-3.5-sonnet, google/gemini-2.0-flash
+  # - groq:      llama-3.3-70b-versatile, mixtral-8x7b-32768
+  model: "llama3.2"
+
+  # Fallback si le provider principal échoue
+  fallback_provider: "mistral"   # laisser vide si pas de fallback
+  fallback_model: "mistral-small-latest"
+
+  # Uniquement pour provider=custom : URL de base de l'API
+  base_url: ""
+
+# Chemins — remplis automatiquement par le setup wizard
+_cv_path: ""
+_letter_template_path: ""
