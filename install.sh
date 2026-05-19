@@ -20,6 +20,9 @@ echo -e "${C}━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # ── 1. Vérifications ──────────────────────────────────────────
+# Réattache stdin au terminal (important pour curl|bash)
+exec < /dev/tty
+
 if ! command -v python3 &>/dev/null; then
     echo -e "${R}❌ Python 3 requis.${NC}"
     echo -e "   macOS :  ${Y}brew install python3${NC}"
