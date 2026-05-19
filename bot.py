@@ -89,7 +89,19 @@ def _menu_item(n, label):
 def run_setup():
     from src.setup import run_wizard
     print()
-    run_wizard({})
+    lang = _ask_language()
+    run_wizard({}, lang=lang)
+
+
+def _ask_language():
+    """Demande la langue au démarrage."""
+    print(f"  {_bold('🌐 Langue / Language')}")
+    print(f"  {_dim('[1]')} Français")
+    print(f"  {_dim('[2]')} English")
+    ans = input(f"  {_dim('Choix / Choice [1] : ')}").strip()
+    if ans == "2":
+        return "en"
+    return "fr"
 
 
 # ── Config ────────────────────────────────────────────────────
@@ -344,29 +356,45 @@ def menu_dashboard():
     print(_header("📊 Dashboard — Statistiques"))
     labels = get_cat_labels(config)
     print()
-    print(f"  {_bold('OFFRES')}            {_bold('SCORE')}          {_bold('LETTRES')}        {_bold('DOUBLONS')}")
-    print(f"  {_green(str(total))}             {_cyan(str(avg) + '/10')}         {_green(str(letters))}              {_dim(str(doublons))}")
-    print(f"  {_dim('actives')}          {_dim('moyen')}          {_dim('prêtes')}         {_dim('filtrés')}")
+    # Layout central
+    W = 44
+    def _row(left, right):
+        print(f"  {_bold(left):<28} {right}")
+    def _sep():
+        print(f"  {_dim('─' * W)}")
+    
+    _row("📋 Offres actives", _green(str(total)))
+    _row("⭐ Score moyen", _cyan(f"{avg}/10"))
+    _row("✍️  Lettres prêtes", _green(str(letters)))
+    _row("♻️  Doublons filtrés", _dim(str(doublons)))
     print()
-    print(f"  {_bold('CATÉGORIES')}")
+    _sep()
+    print()
     label_a = labels["A"]
     label_b = labels["B"]
-    print(f"  {_green(f'Cat A ({label_a})')}: {_bold(str(cat_a))}   {_dim('|')}   {_yellow(f'Cat B ({label_b})')}: {_bold(str(cat_b))}")
+    print(f"  {_bold('📂 Catégories')}")
+    _row(f"  Cat A — {label_a}", _cyan(str(cat_a)))
+    _row(f"  Cat B — {label_b}", _yellow(str(cat_b)))
     print()
-    print(f"  {_bold('PIPELINE')}")
-    print(f"  Identifiées: {_bold(str(total))}  {_dim('→')}  Lettres: {_bold(str(letters))}  {_dim('→')}  Postulées: {_bold(str(postulees))}  {_dim('→')}  Entretiens: {_bold(str(entretiens))}  {_dim('→')}  Rejets: {_bold(str(rejets))}")
+    _sep()
+    print()
+    print(f"  {_bold('📊 Pipeline')}")
+    pipe = f"  {_dim(str(total) + ' offres')}  {_dim('→')}  {_green(str(letters) + ' lettres')}  {_dim('→')}  {_cyan(str(postulees) + ' postulées')}  {_dim('→')}  {_yellow(str(entretiens) + ' entretiens')}  {_dim('→')}  {_dim(str(rejets) + ' rejets')}"
+    print(pipe)
     print()
     if offers[:7]:
-        print(f"  {_bold('TOP OFFRES')}")
-        print(f"  {'Score':<7} {'Entreprise':<25} {'Poste':<30} {'Cat':<5} Lettre")
-        print(f"  {'─' * 7} {'─' * 25} {'─' * 30} {'─' * 5} {'─' * 6}")
+        _sep()
+        print()
+        print(f"  {_bold('🏆 Top offres')}")
+        print(f"  {'Score':<8}{'Entreprise':<26}{'Poste':<32}{'Cat':<6}{'Lettre'}")
+        print(f"  {'─'*7}  {'─'*24}  {'─'*30}  {'─'*4}  {'─'*5}")
         for o in offers[:7]:
-            sc = _green(f"{o['score']}/10") if o['score'] >= 8 else _dim(f"{o['score']}/10")
-            co = o["company"][:23]
-            ti = o["title"][:28]
+            sc = _green(f"⭐ {o['score']}/10") if o['score'] >= 8 else _cyan(f"  {o['score']}/10")
+            co = o["company"][:24]
+            ti = o["title"][:30]
             ca = _green("A") if o["category"] == "A" else _yellow("B")
             le = _green("✓") if o["has_letter"] else _dim("—")
-            print(f"  {sc:<7} {co:<25} {ti:<30} {ca:<5} {le}")
+            print(f"  {sc:<8}{co:<26}{ti:<32}{ca:<6}{le}")
     print()
 
 def menu_offers():

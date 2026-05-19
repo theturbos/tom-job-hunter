@@ -19,9 +19,52 @@ CONFIG_PATH = Path("data/config.yaml")
 BAR = _make_bar()
 
 
-def _ask(prompt, default="", required=False, choices=None):
-    """Pose une question et retourne la réponse."""
+def _pick_file(title, filetypes):
+    """Tente d'ouvrir un sélecteur de fichier natif.
+    Retourne le chemin ou None si indisponible/annulé."""
+    import subprocess
+    try:
+        # Windows: PowerShell
+        if sys.platform == "win32":
+            ps = f"Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = '{title}'; $f.Filter = '{filetypes[0][1]}|{filetypes[0][1]}'; $f.ShowDialog(); $f.FileName"
+            r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=30)
+            path = r.stdout.strip()
+            if path and Path(path).exists():
+                return path
+        # macOS: osascript
+        elif sys.platform == "darwin":
+            types = ' '.join(f'"{t[1]}"' for t in filetypes)
+            script = f'choose file with prompt "{title}" of type {{{types}}}'
+            r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=30)
+            if r.stdout.strip():
+                # osascript returns "alias MacHD:Users:..." → convert to POSIX
+                r2 = subprocess.run(["osascript", "-e", f'POSIX path of ({r.stdout.strip()})'],
+                                    capture_output=True, text=True, timeout=5)
+                path = r2.stdout.strip()
+                if path and Path(path).exists():
+                    return path
+        # Linux: zenity
+        else:
+            ft = ' '.join(f'--file-filter="{t[0]} | {t[1]}"' for t in filetypes)
+            r = subprocess.run(f'zenity --file-selection --title="{title}" {ft} 2>/dev/null',
+                               shell=True, capture_output=True, text=True, timeout=30)
+            path = r.stdout.strip()
+            if path and Path(path).exists():
+                return path
+    except Exception:
+        pass
+    return None
+
+
+def _ask(prompt, default="", required=False, choices=None, hint=""):
+    """Pose une question et retourne la réponse.
+    hint: affiché sous la question (ex: "Utilisé pour vos lettres de motivation")."""
     suffix = ""
+    req_mark = ""
+    if required:
+        req_mark = f" {_red('*obligatoire')}"
+        if hint:
+            print(f"  {_dim('↳ ' + hint)}")
     if default:
         suffix = f" {_dim(f'[{default}]')}"
     if choices:
@@ -30,7 +73,7 @@ def _ask(prompt, default="", required=False, choices=None):
 
     while True:
         try:
-            ans = input(f"  {prompt}{suffix} : ").strip()
+            ans = input(f"  {prompt}{req_mark}{suffix} : ").strip()
         except (EOFError, KeyboardInterrupt):
             print()
             sys.exit(0)
@@ -164,65 +207,137 @@ def show_guide():
         print(f"  {_dim(cmd_msg)}")
     print()
 
-def run_wizard(existing_config=None):
+def run_wizard(existing_config=None, lang="fr"):
     """Lance le wizard interactif."""
     config = existing_config or {}
 
+    # Textes bilingues
+    T = {
+        "fr": {
+            "title": "⚙️  TOM V2.0 — Configuration",
+            "profile": "👤 Profil",
+            "first_name": "Prénom",
+            "last_name": "Nom de famille",
+            "email": "Email",
+            "linkedin": "LinkedIn URL",
+            "phone": "Téléphone",
+            "available": "Disponibilité",
+            "priorities": "🎯 Priorités de recherche",
+            "skills": "🛠️  Vos compétences clés",
+            "education": "🎓 Formation",
+            "degree": "Diplôme principal",
+            "school": "École / Université",
+            "location": "📍 Localisation",
+            "city": "Ville de recherche",
+            "country": "Pays",
+            "dept": "Code département",
+            "criteria": "🎯 Critères de recherche",
+            "prompt_label": "Recherche",
+            "max_age": "Âge max des offres (jours)",
+            "apis": "🔑 Configuration API",
+            "llm": "🤖 Fournisseur IA",
+            "cv": "📄 CV (.docx)",
+            "template": "✉️  Template de lettre (.docx)",
+            "saved": "✅ Configuration sauvegardée",
+            "launch": "Lancez python bot.py pour commencer.",
+        },
+        "en": {
+            "title": "⚙️  TOM V2.0 — Configuration",
+            "profile": "👤 Profile",
+            "first_name": "First name",
+            "last_name": "Last name",
+            "email": "Email",
+            "linkedin": "LinkedIn URL",
+            "phone": "Phone",
+            "available": "Availability",
+            "priorities": "🎯 Search priorities",
+            "skills": "🛠️  Key skills",
+            "education": "🎓 Education",
+            "degree": "Main degree",
+            "school": "School / University",
+            "location": "📍 Location",
+            "city": "Search city",
+            "country": "Country",
+            "dept": "Department code",
+            "criteria": "🎯 Search criteria",
+            "prompt_label": "Search",
+            "max_age": "Max offer age (days)",
+            "apis": "🔑 API Configuration",
+            "llm": "🤖 AI Provider",
+            "cv": "📄 Resume (.docx)",
+            "template": "✉️  Cover letter template (.docx)",
+            "saved": "✅ Configuration saved",
+            "launch": "Run python bot.py to start.",
+        }
+    }
+    t = T.get(lang, T["fr"])
+    # Stocke la langue dans la config
+    config["_lang"] = lang
+
     print(f"\n{BAR}")
-    print(f"  {_bold('⚙️  TOM V2.0 — Configuration')}")
+    print(f"  {_bold(t['title'])}")
     print(f"{BAR}\n")
 
     # ── 1. Profil ──────────────────────────────────────────────
-    print(f"  {_bold('👤 Profil')}")
+    print(f"  {_bold(t['profile'])}")
     profile = config.get("profile", {})
-    profile["name"] = _ask("Votre nom", default=profile.get("name", ""), required=True)
-    profile["email"] = _ask("Email", default=profile.get("email", ""))
-    profile["linkedin"] = _ask("LinkedIn URL", default=profile.get("linkedin", ""))
-    profile["phone"] = _ask("Téléphone", default=profile.get("phone", ""))
-    profile["available"] = _ask("Disponibilité", default=profile.get("available", "Septembre 2026"))
+    # Split name into first/last if possible
+    existing_name = profile.get("name", "")
+    existing_first = profile.get("first_name", existing_name.split()[0] if existing_name else "")
+    existing_last = profile.get("last_name", " ".join(existing_name.split()[1:]) if len(existing_name.split()) > 1 else "")
+    profile["first_name"] = _ask(t["first_name"], default=existing_first, required=True, hint="Utilisé dans vos lettres de motivation et sur votre CV")
+    profile["last_name"] = _ask(t["last_name"], default=existing_last, required=True, hint="Utilisé dans vos lettres de motivation et sur votre CV")
+    profile["name"] = f"{profile['first_name']} {profile['last_name']}"
+    profile["email"] = _ask(t["email"], default=profile.get("email", ""), hint="Optionnel — ajouté à vos lettres si fourni")
+    profile["linkedin"] = _ask(t["linkedin"], default=profile.get("linkedin", ""), hint="Optionnel — affiché sur votre CV et lettres")
+    profile["phone"] = _ask(t["phone"], default=profile.get("phone", ""), hint="Optionnel — ajouté à vos lettres si fourni")
+    profile["available"] = _ask(t["available"], default=profile.get("available", "Septembre 2026"), required=True, hint="Date à partir de laquelle vous êtes disponible (ex: Septembre 2026, Immédiat, 3 mois...)")
     config["profile"] = profile
     print()
 
     # ── 1b. Priorités de recherche ─────────────────────────────
-    print(f"  {_bold('🎯 Priorités de recherche')}")
-    print(f"  {_dim('Classez vos priorités (1 = le plus important)')}")
-    print(f"  {_dim('Options : IA Stratégie / Finance+IA / Conseil / Scale-up / Autre')}")
-    prio1 = _ask("Priorité 1", default="IA Stratégie")
-    prio2 = _ask("Priorité 2", default="Finance+IA")
-    prio3 = _ask("Priorité 3", default="Scale-up tech")
+    print(f"  {_bold(t['priorities'])}")
+    print(f"  {_dim('Ces priorités aident TOM à classer vos résultats.')}")
+    print(f"  {_dim('Elles ne filtrent PAS les offres — elles pondèrent le scoring.')}")
+    print(f"  {_dim('Exemples : IA Stratégie, Finance+IA, Scale-up tech, Conseil, Marketing, Supply Chain...')}")
+    soyons_creatif = "Soyez créatif — décrivez VOS priorités, pas celles de l'exemple."
+    print(f"  {_dim(soyons_creatif)}")
+    prio1 = _ask("Priorité 1 (la + importante)", default="IA Stratégie", required=True, hint="Votre objectif n°1 — pèse le plus dans le scoring")
+    prio2 = _ask("Priorité 2", default="Finance+IA", hint="Second critère de classement")
+    prio3 = _ask("Priorité 3", default="Scale-up tech", hint="Troisième critère de classement")
     prefs = config.get("preferences", {})
     prefs["priorities"] = [prio1, prio2, prio3]
     config["preferences"] = prefs
     print()
 
     # ── 1c. Skills ─────────────────────────────────────────────
-    print(f"  {_bold('🛠️  Vos compétences clés')}")
+    print(f"  {_bold(t['skills'])}")
     print(f"  {_dim('Séparez par des virgules. Ex: Python, LLM, RAG, FP&A, Power BI, SQL')}")
-    skills_raw = _ask("Skills", default=", ".join(profile.get("skills", [])))
+    skills_raw = _ask("Skills", default=", ".join(profile.get("skills", [])), required=True, hint="Utilisé pour le matching avec les offres et dans vos lettres")
     profile["skills"] = [s.strip() for s in skills_raw.split(",") if s.strip()] if skills_raw else []
     print()
 
     # ── 1d. Éducation ──────────────────────────────────────────
-    print(f"  {_bold('🎓 Formation')}")
-    edu1 = _ask("Diplôme principal", default=profile.get("education_main", ""))
-    edu2 = _ask("École / Université", default=profile.get("education_school", ""))
+    print(f"  {_bold(t['education'])}")
+    edu1 = _ask(t["degree"], default=profile.get("education_main", ""), hint="Optionnel — mentionné dans vos lettres (ex: Master Stratégie, BBA Finance...)")
+    edu2 = _ask(t["school"], default=profile.get("education_school", ""), hint="Optionnel — mentionné dans vos lettres")
     profile["education_main"] = edu1
     profile["education_school"] = edu2
     config["profile"] = profile
     print()
 
     # ── 2. Localisation ────────────────────────────────────────
-    print(f"  {_bold('📍 Localisation')}")
+    print(f"  {_bold(t['location'])}")
     location = config.get("preferences", {}).get("location", {})
-    city = _ask("Ville de recherche", default=location.get("city", "Paris"), required=True)
-    country = _ask("Pays", default=location.get("country", "France"))
-    dept = _ask("Code département (75=Paris, 45=Orléans, 92=Hauts-de-Seine...)", default=location.get("department", "75"))
+    city = _ask(t["city"], default=location.get("city", "Paris"), required=True)
+    country = _ask(t["country"], default=location.get("country", "France"))
+    dept = _ask(t["dept"] + " (75=Paris, 45=Orléans, 92=Hauts-de-Seine...)", default=location.get("department", "75"))
     location = {"city": city, "country": country, "department": dept}
     config.setdefault("preferences", {})["location"] = location
     print()
 
     # ── 3. Critères de recherche ───────────────────────────────
-    print(f"  {_bold('🎯 Critères de recherche')}")
+    print(f"  {_bold(t['criteria'])}")
     prefs = config.get("preferences", {})
     print(f"  {_dim('Décrivez en langage naturel ce que vous cherchez :')}")
     print(f"  {_dim('Exemples de prompts :')}")
@@ -239,19 +354,17 @@ def run_wizard(existing_config=None):
     print('    ' + _cyan(ex5))
     print('    ' + _cyan(ex6))
     print()
-    nl_prompt = _ask("Recherche", default=prefs.get("natural_language_prompt", ""))
+    nl_prompt = _ask(t["prompt_label"], default=prefs.get("natural_language_prompt", ""))
     prefs["natural_language_prompt"] = nl_prompt
 
-    max_age = _ask("Âge max des offres (jours)", default=str(prefs.get("max_offer_age_days", 10)))
+    max_age = _ask(t["max_age"], default=str(prefs.get("max_offer_age_days", 10)), hint="Les offres plus anciennes seront ignorées")
     prefs["max_offer_age_days"] = int(max_age) if max_age.isdigit() else 10
     config["preferences"] = prefs
-
-    min_score = _ask("Score minimum pour retenir une offre (1-10)", default=str(config.get("matching", {}).get("min_score", 6)))
-    config.setdefault("matching", {})["min_score"] = int(min_score) if min_score.isdigit() else 6
+    config.setdefault("matching", {})["min_score"] = 6  # Défaut, modifiable dans config
     print()
 
     # ── 4. APIs ────────────────────────────────────────────────
-    print(f"  {_bold('🔑 Configuration API')}")
+    print(f"  {_bold(t['apis'])}")
     api = config.get("api", {})
 
     # France Travail
@@ -285,7 +398,7 @@ def run_wizard(existing_config=None):
     print()
 
     # ── 5. LLM ─────────────────────────────────────────────────
-    print(f"  {_bold('🤖 Fournisseur IA (pour les lettres et le parsing)')}")
+    print(f"  {_bold(t['llm'])}")
     print(f"  {_dim('1 = Ollama (local, gratuit, privé)')}")
     print(f"  {_dim('2 = Mistral AI (français 🇫🇷, tier gratuit généreux)')}")
     print(f"  {_dim('3 = OpenAI (payant, meilleure qualité)')}")
@@ -318,21 +431,28 @@ def run_wizard(existing_config=None):
         print()
         print(f"  {_yellow('⚠️  AVERTISSEMENT OLLAMA')}")
         print(f"  {_yellow('─────────────────────')}")
-        print(f"  {_dim('• Nécessite 4+ Go de VRAM (GPU) ou 16+ Go de RAM (CPU)')}")
-        print(f"  {_dim('• Le 1er téléchargement du modèle pèse 2-8 Go (5-15 min)')}")
-        print(f"  {_dim('• Génération de lettres : 30-90 secondes par lettre')}")
-        print(f"  {_dim('• Ne convient PAS aux machines avec 4 Go RAM sans GPU')}")
-        print(f"  {_dim('• Si le scan semble bloqué → Ollama charge le modèle (patience)')}")
+        print(f"  {_dim('• Nécessite 4+ Go de VRAM (carte graphique) ou 16+ Go de RAM (sans GPU)')}")
+        print(f"  {_dim('• Le 1er téléchargement du modèle pèse 2 à 8 Go (5-15 minutes)')}")
+        print(f"  {_dim('• Génération de lettres : 30-90 secondes par lettre (selon votre machine)')}")
+        print(f"  {_dim('• Ne convient PAS aux machines avec 4 Go RAM sans carte graphique')}")
+        print(f"  {_dim('• Doit tourner en arrière-plan : ouvrez un terminal, tapez ollama serve')}")
         print()
-        print(f"  {_cyan('💡 Modèle léger recommandé :')}")
-        print(f"  {_dim('phi3:mini (2.4 Go, compatible CPU, démarrage rapide)')}")
-        print(f"  {_dim('tinyllama (637 Mo, ultra-léger, qualité correcte)')}")
-        print(f"  {_dim('Installation one-liner :')} {_cyan('ollama pull phi3:mini')}")
+        print(f"  {_cyan('💡 Comment installer Ollama :')}")
+        print(f"  {_dim('1. Téléchargez :')} {_yellow('https://ollama.com/download')}")
+        app_desktop = "2. Lancez Ollama (l'application desktop ou ollama serve)"
+        print(f"  {_dim(app_desktop)}")
+        print(f"  {_dim('3. Téléchargez un modèle léger :')}")
+        print(f"  {_dim('   •')} {_cyan('ollama pull phi3:mini')} {_dim('(2.4 Go — recommandé, compatible CPU)')}")
+        print(f"  {_dim('   •')} {_cyan('ollama pull tinyllama')} {_dim('(637 Mo — ultra-léger, qualité correcte)')}")
+        print(f"  {_dim('   •')} {_cyan('ollama pull llama3.2')} {_dim('(2.0 Go — bon équilibre)')}")
+        verif_ollama = '4. Vérifiez que ça marche :'
+        ollama_cmd = "ollama run phi3:mini 'Bonjour'"
+        print(f"  {_dim(verif_ollama)} {_cyan(ollama_cmd)}")
         print()
         print(f"  {_cyan('☁️  Alternative cloud (si Ollama ne marche pas) :')}")
-        print(f"  {_dim('TOMATO détecte automatiquement si Ollama est down')}")
-        print(f"  {_dim('→ fallback sur le provider configuré (si clé API dispo)')}")
-        print(f"  {_dim('→ sinon fallback regex (pas de LLM requis)')}")
+        print(f"  {_dim('TOM détecte automatiquement si Ollama est injoignable')}")
+        print(f"  {_dim('→ fallback automatique sur un provider cloud (si clé API configurée)')}")
+        print(f"  {_dim('→ sinon fallback regex (pas de LLM requis, parsing basique)')}")
         print()
         ans = _ask("Continuer avec Ollama ?", default="y", choices=["y", "n"])
         if ans == "n":
@@ -399,27 +519,41 @@ def run_wizard(existing_config=None):
     print()
 
     # ── 6. CV (upload passif) ──────────────────────────────────
-    print(f"  {_bold('📄 CV (.docx)')}")
-    cv_path = _ask("Chemin vers votre CV .docx (Entrée = ignorer)", default=config.get("_cv_path", ""))
+    print(f"  {_bold(t['cv'])}")
+    print(f"  {_dim('TOM lit votre CV pour extraire vos compétences (lecture seule, aucune modification).')}")
+    print(f"  {_dim('Formats acceptés : .docx uniquement.')}")
+    # Tente un sélecteur de fichier natif si dispo
+    cv_path = _pick_file("Sélectionnez votre CV .docx", [("Word documents", "*.docx")])
+    if not cv_path:
+        cv_path = _ask("Ou collez le chemin vers votre CV .docx (Entrée = ignorer)",
+                        default=config.get("_cv_path", ""),
+                        hint="Pour obtenir le chemin : faites un clic droit sur le fichier → Copier en tant que chemin (Windows) ou faites glisser le fichier dans le terminal (Mac)")
     if cv_path:
-        cv_p = Path(cv_path)
+        cv_p = Path(cv_path.strip('"').strip("'"))
         if cv_p.exists() and cv_p.suffix.lower() == ".docx":
             config["_cv_path"] = str(cv_p.resolve())
             print(f"  {_green('✅ CV trouvé et enregistré.')}")
-        elif cv_path:
+        elif cv_path.strip():
             print(f"  {_red(f'Fichier introuvable ou pas .docx : {cv_path}')}")
     print()
 
     # ── 7. Template de lettre ──────────────────────────────────
-    print(f"  {_bold('✉️  Template de lettre (.docx)')}")
-    print(f"  {_dim('Placeholders disponibles : {{ENTREPRISE}} {{POSTE}} {{DATE}} {{CORPS}} {{DESTINATAIRE}}')}")
-    tmpl_path = _ask("Chemin vers votre template .docx (Entrée = ignorer)", default=config.get("_letter_template_path", ""))
+    print(f"  {_bold(t['template'])}")
+    no_template = "Optionnel — TOM fournit un template par défaut si vous n'en avez pas."
+    print(f"  {_dim(no_template)}")
+    ph_text = "Placeholders disponibles : {ENTREPRISE} {POSTE} {DATE} {CORPS} {DESTINATAIRE} {PRENOM} {EMAIL}"
+    print(f"  {_dim(ph_text)}")
+    tmpl_path = _pick_file("Sélectionnez votre template .docx", [("Word documents", "*.docx")])
+    if not tmpl_path:
+        tmpl_path = _ask("Ou collez le chemin vers votre template .docx (Entrée = template par défaut)",
+                          default=config.get("_letter_template_path", ""),
+                          hint="Pour obtenir le chemin : clic droit → Copier en tant que chemin (Windows) ou glisser-déposer dans le terminal (Mac)")
     if tmpl_path:
-        tmpl_p = Path(tmpl_path)
+        tmpl_p = Path(tmpl_path.strip('"').strip("'"))
         if tmpl_p.exists() and tmpl_p.suffix.lower() == ".docx":
             config["_letter_template_path"] = str(tmpl_p.resolve())
-            print("  " + _green("\u2705 Template trouv\u00e9 et enregistr\u00e9."))
-        elif tmpl_path:
+            print("  " + _green("✅ Template trouvé et enregistré."))
+        elif tmpl_path.strip():
             msg = f"Fichier introuvable ou pas .docx : {tmpl_path}"
             print("  " + _red(msg))
     print()
@@ -431,8 +565,8 @@ def run_wizard(existing_config=None):
 
     print(f"{BAR}")
     cmd = _bold("python bot.py")
-    run_hint = "Lancez " + cmd + " pour commencer."
-    print(f"  {_green('✅ Configuration sauvegardée :')} {_dim(str(CONFIG_PATH))}")
+    run_hint = t["launch"]
+    print(f"  {_green(t['saved'])} : {_dim(str(CONFIG_PATH))}")
     print(f"  {_dim(run_hint)}")
     print(f"{BAR}\n")
 
