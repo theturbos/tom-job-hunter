@@ -98,7 +98,7 @@ if [ ! -d ".venv" ]; then
         echo ""
         echo -e "  ${C}Lancement du wizard de configuration...${NC}"
         echo ""
-        python3 bot.py setup
+        python3 bot.py
         echo ""
         echo -e "  ${G}🚀 Pour lancer TOM V2.0 :${NC}"
         echo -e "  ${Y}cd $INSTALL_DIR && python3 bot.py${NC}"
@@ -129,34 +129,75 @@ echo ""
 # ── Raccourci bureau (macOS/Linux) ──
 echo -e "📌 Création du raccourci..."
 
-# macOS: crée un .command (double-clic depuis le Finder)
+# macOS: crée un .app bundle (double-clic depuis le Finder, supporte icône + Dock)
 if [[ "$OSTYPE" == "darwin"* ]]; then
     DESKTOP="$HOME/Desktop"
-    SHORTCUT="$DESKTOP/TOM Job Hunter.command"
-    
-    # Crée l'icône .icns depuis le PNG (macOS natif)
+
+    # ── Icône .icns (nomenclature officielle Apple) ──
     ICONSET="$INSTALL_DIR/assets/TOM.iconset"
     mkdir -p "$ICONSET"
-    # Génère toutes les résolutions depuis le PNG 256x256
-    for size in 16 32 64 128 256 512; do
-        half=$((size/2))
-        sips -z $size $size "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_${half}x${half}.png" 2>/dev/null
-        sips -z $size $size "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_${half}x${half}@2x.png" 2>/dev/null
-    done
+    # Apple iconutil exige ces noms exacts (1x = nom_sans_@, 2x = nom_avec_@2x)
+    sips -z 16 16   "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_16x16.png" 2>/dev/null
+    sips -z 32 32   "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_16x16@2x.png" 2>/dev/null
+    sips -z 32 32   "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_32x32.png" 2>/dev/null
+    sips -z 64 64   "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_32x32@2x.png" 2>/dev/null
+    sips -z 128 128 "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_128x128.png" 2>/dev/null
+    sips -z 256 256 "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_128x128@2x.png" 2>/dev/null
+    sips -z 256 256 "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_256x256.png" 2>/dev/null
+    sips -z 512 512 "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_256x256@2x.png" 2>/dev/null
+    sips -z 512 512 "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_512x512.png" 2>/dev/null
+    sips -z 1024 1024 "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_512x512@2x.png" 2>/dev/null
     iconutil -c icns "$ICONSET" -o "$INSTALL_DIR/assets/TOM.icns" 2>/dev/null && \
-        echo -e "${G}✅ Icône macOS créée${NC}" || \
-        echo -e "${Y}⚠️  Icône macOS non créée (sips/iconutil indisponible)${NC}"
+        echo -e "${G}✅ Icône .icns créée${NC}" || \
+        echo -e "${Y}⚠️  Icône .icns non créée (sips/iconutil indisponible)${NC}"
     rm -rf "$ICONSET"
-    
-    cat > "$SHORTCUT" << 'TOMSHORTCUT'
+
+    # ── Création d'un .app bundle minimal (seule solution pour icône + Dock sur macOS) ──
+    APP_NAME="TOM Job Hunter"
+    APP_DIR="$DESKTOP/$APP_NAME.app"
+    mkdir -p "$APP_DIR/Contents/MacOS"
+    mkdir -p "$APP_DIR/Contents/Resources"
+
+    # Info.plist minimal
+    cat > "$APP_DIR/Contents/Info.plist" << TOMPLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>TOM Job Hunter</string>
+    <key>CFBundleIconFile</key>
+    <string>TOM</string>
+    <key>CFBundleIdentifier</key>
+    <string>ai.openclaw.tom-job-hunter</string>
+    <key>CFBundleName</key>
+    <string>TOM Job Hunter</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>2.0</string>
+</dict>
+</plist>
+TOMPLIST
+
+    # Script exécutable (lance TOM dans une nouvelle fenêtre Terminal)
+    cat > "$APP_DIR/Contents/MacOS/TOM Job Hunter" << 'TOMEXEC'
 #!/bin/bash
-cd "$HOME/.tom-job-hunter"
-if [ -f ".venv/bin/activate" ]; then source .venv/bin/activate; fi
-python3 bot.py
-read -p "Appuyez sur Entrée pour fermer..."
-TOMSHORTCUT
-    chmod +x "$SHORTCUT"
-    echo -e "${G}✅ Raccourci créé sur le Bureau : TOM Job Hunter.command${NC}"
+# Ouvre TOM dans une nouvelle fenêtre Terminal (reste ouverte après le run)
+CMD="cd \"$HOME/.tom-job-hunter\" && [ -f \".venv/bin/activate\" ] && source .venv/bin/activate; python3 bot.py; echo ''; echo 'Appuyez sur Entrée pour fermer...'; read"
+osascript -e "tell application \"Terminal\"" -e "activate" -e "do script \"$CMD\""
+TOMEXEC
+    chmod +x "$APP_DIR/Contents/MacOS/TOM Job Hunter"
+
+    # Copier l'icône
+    cp "$INSTALL_DIR/assets/TOM.icns" "$APP_DIR/Contents/Resources/TOM.icns" 2>/dev/null
+
+    # Rafraîchir le cache icônes du Finder
+    touch "$APP_DIR" 2>/dev/null
+    # Notifier le Finder pour qu'il recharge l'icône du .app
+    osascript -e "tell application \"Finder\" to update item (POSIX file \"$APP_DIR\" as alias)" 2>/dev/null || true
+
+    echo -e "${G}✅ Raccourci Bureau créé : TOM Job Hunter.app${NC}"
 
 # Linux: crée un .desktop (double-clic depuis le bureau)
 elif [[ "$OSTYPE" == "linux"* ]]; then
@@ -180,10 +221,10 @@ echo ""
 echo -e "  ${C}Lancement du wizard de configuration...${NC}"
 echo ""
 
-python3 bot.py setup
+python3 bot.py
 
 echo ""
 echo -e "  🚀 Pour lancer TOM V2.0 :"
-echo -e "     Double-clic sur ${Y}TOM Job Hunter${NC} sur le Bureau"
+echo -e "     Double-clic sur ${Y}TOM Job Hunter.app${NC} sur le Bureau"
 echo -e "     OU : ${Y}cd $INSTALL_DIR && source .venv/bin/activate && python3 bot.py${NC}"
 echo ""
