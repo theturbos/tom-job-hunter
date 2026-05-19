@@ -117,7 +117,45 @@ echo [INFO] Suite sans virtualenv...
 
 :wizard
 
-REM 5. Wizard
+REM 5. Raccourci bureau avec icône
+REM Utilise PowerShell pour créer un vrai .lnk (icône personnalisée)
+echo.
+echo   Creation du raccourci bureau...
+
+set "DESKTOP=%USERPROFILE%\Desktop"
+set "SHORTCUT=%DESKTOP%\TOM Job Hunter.lnk"
+set "LAUNCHER=%INSTALL_DIR%\tom-launcher.bat"
+
+REM Crée le launcher .bat (invisible, appelle le vrai bot)
+(
+  echo @echo off
+  echo chcp 65001 ^>nul 2^>^&1
+  echo cd /d "%INSTALL_DIR%"
+  echo if exist ".venv\Scripts\activate.bat" call ".venv\Scripts\activate.bat"
+  echo python bot.py
+  echo pause
+) > "%LAUNCHER%"
+
+REM Crée le raccourci .lnk avec icône via PowerShell
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$WshShell = New-Object -ComObject WScript.Shell; ^
+   $Shortcut = $WshShell.CreateShortcut('%SHORTCUT%'); ^
+   $Shortcut.TargetPath = '%LAUNCHER%'; ^
+   $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; ^
+   $Shortcut.IconLocation = '%INSTALL_DIR%\assets\icon.ico'; ^
+   $Shortcut.Description = 'TOM V2.0 - Agent de recherche d''emploi'; ^
+   $Shortcut.Save()" 2>nul
+
+if exist "%SHORTCUT%" (
+    echo [OK] Raccourci cree sur le Bureau : TOM Job Hunter
+    echo       Avec icone personnalisee
+) else (
+    REM Fallback : .bat simple si PowerShell échoue
+    echo [WARN] Creation .lnk echouee, fallback .bat sans icone
+    copy /Y "%LAUNCHER%" "%DESKTOP%\TOM Job Hunter.bat" >nul 2>&1
+)
+
+REM 6. Wizard
 echo.
 echo ==================================================
 echo   Installation terminee !
@@ -129,10 +167,9 @@ echo.
 python bot.py setup
 
 echo.
-echo   Pour lancer TOM V2.0 :
-echo   cd %INSTALL_DIR%
-echo   .venv\Scripts\activate
-echo   python bot.py
+echo   🚀 Pour lancer TOM V2.0 :
+echo      Double-clic sur "TOM Job Hunter" sur le Bureau
+echo      OU : cd %INSTALL_DIR% ^&^& .venv\Scripts\activate ^&^& python bot.py
 echo.
 REM Pause seulement en mode interactif (double-clic)
 if "%TOM_SILENT%"=="" pause

@@ -84,16 +84,42 @@ def _menu_item(n, label):
     return f"  {_green(f'[{n}]')} {label}"
 
 
+# ── Setup ─────────────────────────────────────────────────────
+
+def run_setup():
+    from src.setup import run_wizard
+    print()
+    run_wizard({})
+
+
 # ── Config ────────────────────────────────────────────────────
 
 def load_config():
     if not CONFIG_PATH.exists():
-        print(_red('Configuration non trouvée.') + "\n   python bot.py setup")
-        sys.exit(1)
+        print()
+        print(_yellow('⚠️  Aucune configuration trouvée.'))
+        print(_dim('Lancement du wizard d\'installation...'))
+        print()
+        run_setup()
+        if not CONFIG_PATH.exists():
+            print(_red('Configuration annulée. Au revoir !'))
+            sys.exit(0)
+        print()
+        print(_green('✅ Configuration créée avec succès !'))
+        print(_dim('Redémarrage de TOM...'))
+        print()
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
     if not data:
-        print(_red('Configuration vide.') + "\n   python bot.py setup")
+        print(_red('Configuration vide.'))
+        print(_dim('Lancement du wizard...'))
+        run_setup({})
+        if not CONFIG_PATH.exists():
+            sys.exit(0)
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    if not data:
+        print(_red('Configuration vide. Au revoir !'))
         sys.exit(1)
     return data
 
@@ -731,12 +757,6 @@ def run_guide():
     from src.setup import show_guide
     print()
     show_guide()
-
-
-def run_setup():
-    from src.setup import run_wizard
-    print()
-    run_wizard({})
 
 
 # ── Boucle principale ─────────────────────────────────────────

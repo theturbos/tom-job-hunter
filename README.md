@@ -1,52 +1,54 @@
 # 🔍 TOM V2.0 — Agent Personnel de Recherche d'Emploi
+# 🔍 TOM V2.0 — Personal Job Search Agent
 
-> Votre bot CLI qui scanne les offres, match votre profil, génère des lettres de motivation et suit vos candidatures — 100% local, 100% privé.
+> 🇫🇷 Votre bot CLI qui scanne les offres, match votre profil, génère des lettres de motivation et suit vos candidatures.
+> 🇬🇧 Your CLI bot that scans job listings, matches your profile, generates cover letters, and tracks applications.
 
-**Auteur** : [Matthias Dubois](https://www.linkedin.com/in/matthias-dubois/) — [@theturbos](https://github.com/theturbos)  
-**Licence** : Propriétaire — Tous droits réservés. Usage personnel autorisé, redistribution interdite. Voir [LICENSE](LICENSE).
+**Auteur / Author** : [Matthias Dubois](https://www.linkedin.com/in/matthias-dubois/) — [@theturbos](https://github.com/theturbos)  
+**Licence / License** : Propriétaire — Tous droits réservés. Usage personnel autorisé, redistribution interdite. Voir [LICENSE](LICENSE).  
+**🇫🇷 Unique en France** — seul agent de recherche d'emploi couplant NLP et génération automatique de lettres.
 
 ---
 
-## 🚀 Installation en 1 ligne
+## 🚀 Installation en 1 ligne / 1-line install
 
 ### macOS / Linux
 ```bash
 curl -sSL https://raw.githubusercontent.com/theturbos/tom-job-hunter/main/install.sh | bash
 ```
 
-### Windows (PowerShell admin)
+### Windows (PowerShell)
 ```powershell
-iwr -useb https://raw.githubusercontent.com/theturbos/tom-job-hunter/main/install.bat -outfile "$env:TEMP\tom-install.bat" && cmd /c "%TEMP%\tom-install.bat"
+iwr -useb https://raw.githubusercontent.com/theturbos/tom-job-hunter/main/install.bat -outfile "$env:TEMP\tom-install.bat"; cmd /c "%TEMP%\tom-install.bat"
 ```
 
-Le script d'installation :
-1. ✅ Vérifie Python 3 et Git
+**L'installateur / The installer :**
+1. ✅ Vérifie Python 3 et Git / Checks Python 3 & Git
 2. 📂 Clone le repo dans `~/.tom-job-hunter` (ou `%USERPROFILE%\.tom-job-hunter`)
-3. 🐍 Crée un virtualenv et installe les dépendances
-4. ⚙️ Lance le **wizard interactif** qui configure tout
+3. 🐍 Crée un virtualenv + dépendances / Creates venv + dependencies
+4. 📌 Crée un raccourci Bureau avec icône / Creates Desktop shortcut with icon
+5. ⚙️ Lance le wizard interactif / Launches setup wizard
 
 ---
 
-## ⚙️ Setup Wizard (inclus dans l'install)
+## ⚙️ Setup Wizard
 
-Le wizard vous guide étape par étape :
-
-| Étape | Question |
+| Étape / Step | Question |
 |-------|----------|
-| 👤 Profil | Nom, email, LinkedIn, dispo |
-| 🎯 Priorités | Classez : IA Stratégie / Finance+IA / Scale-up... |
-| 🛠️ Skills | Vos compétences (Python, LLM, FP&A...) |
-| 🎓 Formation | Diplôme + école |
-| 📍 Localisation | Ville + pays de recherche |
-| 🎯 Critères | Décrivez en langage naturel ce que vous cherchez |
-| 🔑 APIs | France Travail (gratuit) + SerpApi (gratuit) |
-| 🤖 LLM | Ollama (local/gratuit) / Mistral (FR/gratuit) / OpenAI |
-| 📄 CV | Upload passif (.docx) — extraction keywords |
-| ✉️ Template | Template lettre (.docx) — clonage formatage |
+| 👤 Profil | Nom, email, LinkedIn, disponibilité / Name, email, availability |
+| 🎯 Priorités | IA Stratégie / Finance+IA / Scale-up / Autre |
+| 🛠️ Skills | Python, LLM, FP&A, Power BI, SQL... |
+| 🎓 Formation | Diplôme + école / Degree + school |
+| 📍 Localisation | Ville + département / City + region |
+| 🎯 Critères | Prompt en langage naturel ("Head of AI en finance à Paris") |
+| 🔑 APIs | France Travail (gratuit/free) + SerpApi (100 req/mois free) |
+| 🤖 LLM | Ollama (local) / Mistral / OpenAI / DeepSeek / Groq / OpenRouter |
+| 📄 CV | Upload .docx — extraction compétences / skills extraction |
+| ✉️ Template | Template lettre .docx — garde votre formatage / preserves formatting |
 
 ---
 
-## 📖 Utilisation
+## 📖 Utilisation / Usage
 
 ```bash
 cd ~/.tom-job-hunter
@@ -54,27 +56,28 @@ source .venv/bin/activate   # Windows : .venv\Scripts\activate
 python bot.py
 ```
 
-**Menu principal :**
+**Menu principal / Main menu :**
 
 ```
-[1] 🔍 Scanner les offres
+[1] 🔍 Scanner les offres / Scan jobs
 [2] 📊 Dashboard / Statistiques
-[3] 📋 Voir les offres
-[4] ✅ J'ai postulé
-[5] ❌ Rejet reçu
-[6] ✍️  Générer des lettres
-[7] ⚙️  Changer la config
-[8] 🎤 Prompt — Mettre à jour mes critères
-[9] 📝 Voir candidatures
-[0] 🚪 Quitter
+[3] 📋 Voir les offres / Browse offers
+[4] ✅ J'ai postulé / Mark applied
+[5] 📞 Entretien obtenu / Got interview
+[6] ❌ Rejet reçu / Got rejected
+[7] ✍️  Générer des lettres / Generate cover letters
+[8] ⚙️  Changer la config / Edit config
+[9] 🎤 Prompt — Mettre à jour mes critères / Update search criteria
+[10] 📝 Voir candidatures / View applications
+[0] 🚪 Quitter / Quit
 ```
 
-**Exemple de workflow :**
-1. `[1]` Scanner → trouve 12 offres pertinentes
-2. `[3]` Voir les offres → scores 6-10/10
-3. `[6]` Générer lettres → crée des .docx personnalisées
-4. `[4]` J'ai postulé → met à jour le suivi
-5. `[2]` Dashboard → récapitulatif pipeline
+**Workflow type :**
+1. `[1]` Scanner → trouve des offres / finds matching listings
+2. `[3]` Voir les offres → scores 1-10/10
+3. `[7]` Générer lettres → crée des .docx personnalisées / custom .docx
+4. `[4]` J'ai postulé → met à jour le suivi / updates tracker
+5. `[2]` Dashboard → pipeline complet
 
 ---
 
@@ -82,91 +85,127 @@ python bot.py
 
 ```
 tom-job-hunter/
-├── bot.py              ← Menu CLI principal
+├── bot.py              ← Menu CLI principal / Main CLI
 ├── install.sh          ← Installateur macOS/Linux
 ├── install.bat         ← Installateur Windows
-├── requirements.txt    ← Dépendances (4 libs)
-├── config.example.yaml ← Template de config
+├── requirements.txt    ← 3 dépendances légères / lightweight deps
+├── config.example.yaml ← Template de config anonymisé
+├── assets/
+│   ├── icon.png        ← Icône TOM 256×256
+│   └── icon.ico        ← Icône Windows
 ├── src/
-│   ├── scanner.py      ← France Travail + SerpApi + Web
-│   ├── matcher.py      ← Scoring offres vs profil
-│   ├── letter_engine.py ← Génération lettres LLM + .docx
-│   ├── cv_parser.py    ← Extraction passive CV
-│   ├── prompt_engine.py ← NLP → config structurée
-│   └── setup.py        ← Wizard interactif
-├── data/               ← Données utilisateur (non commité)
+│   ├── scanner.py      ← France Travail + SerpApi + Web fallback
+│   ├── matcher.py      ← Scoring offres vs profil / job scoring
+│   ├── letter_engine.py ← Génération lettres LLM + anti-patterns IA
+│   ├── cv_parser.py    ← Extraction passive CV (.docx)
+│   ├── prompt_engine.py ← NLP → config structurée + regex fallback
+│   ├── setup.py        ← Wizard interactif + guide débutant
+│   └── updater.py      ← MàJ auto (git pull / zip) sans toucher data/
+├── data/               ← ⚡ Données utilisateur (non commité)
 │   ├── config.yaml
 │   ├── offres.md
 │   ├── candidatures.md
 │   └── doublons.md
-└── lettres/            ← Lettres générées
+└── lettres/            ← ⚡ Lettres générées (non commité)
 ```
 
 ---
 
-## 🔑 APIs requises
+## 🔑 APIs
 
-| API | Prix | Usage |
+| API | Prix / Price | Usage |
 |-----|------|-------|
-| **France Travail** | Gratuit | Offres officielles France (500k+) |
-| **SerpApi** | 100 req/mois gratuits | Google Jobs (LinkedIn, WTTJ, Indeed...) |
+| **France Travail** | Gratuit / Free | 🇫🇷 Offres officielles France (500k+) |
+| **SerpApi** | 100 req/mois gratuites | Google Jobs (LinkedIn, WTTJ, Indeed, Apec...) |
 
 **Guide France Travail :**
-1. https://www.emploi-store.fr/portail/ → créez un compte
+1. https://www.emploi-store.fr/portail/ → créez un compte / create account
 2. Mes applications → nouvelle application → API "Offres d'emploi"
 3. Copiez Client ID + Client Secret
 
 **Guide SerpApi :**
-1. https://serpapi.com/ → créez un compte gratuit
+1. https://serpapi.com/ → créez un compte gratuit / free account
 2. Dashboard → copiez l'API key
 
 ---
 
-## 🤖 Fournisseurs IA pour les lettres
+## 🤖 Fournisseurs IA / AI Providers
 
-| Provider | Prix | Qualité |
-|----------|------|---------|
-| **Ollama** | Gratuit, 100% local | Bonne (llama3.2) |
-| **Mistral AI** 🇫🇷 | Tier gratuit généreux | Très bonne |
-| **OpenAI** | Payant (~$0.02/lettre) | Excellente |
-| **Aucun** | — | Template seul |
+| Provider | Prix / Price | Qualité | Localisation données |
+|----------|------|---------|---------------------|
+| **Ollama** | Gratuit / Free | Bonne / Good | 🟢 100% local |
+| **Mistral AI** 🇫🇷 | Tier gratuit / Free tier | Très bonne / Very good | ☁️ Cloud (UE) |
+| **OpenAI** | ~$0.02/lettre | Excellente / Excellent | ☁️ Cloud (US) |
+| **DeepSeek** | Très bon marché / Cheap | Excellent FR | ☁️ Cloud (CN) |
+| **Groq** | Gratuit (limité) / Free tier | Très rapide / Very fast | ☁️ Cloud (US) |
+| **OpenRouter** | Pay-per-use | Claude, Gemini, GPT... | ☁️ Cloud (US) |
+| **Aucun / None** | — | Template seul / Template only | 🟢 100% local |
 
 ---
 
-## 🛡️ Vie privée
+## 🛡️ Vie privée / Privacy
 
-- **100% local** — Aucune donnée envoyée à un serveur
-- Vos offres, lettres et config restent sur votre machine
-- Seuls les appels API (France Travail, SerpApi, LLM) sortent
+### 🟢 Local (Ollama)
+- **100% de vos données restent sur votre machine.**
+- Aucune donnée personnelle, offre, lettre ou config ne sort.
+- Seules les APIs de scan (France Travail, SerpApi) envoient vos mots-clés de recherche.
+- **Recommandé si vous traitez des données sensibles.**
+
+### ☁️ Cloud (Mistral, OpenAI, DeepSeek, Groq, OpenRouter)
+- **Votre profil, CV et offres sont envoyés au fournisseur LLM** pour générer les lettres.
+- Ces données transitent par les serveurs du fournisseur et sont soumises à leur politique de confidentialité.
+- Vos fichiers `data/` et `lettres/` restent sur votre machine — seul le contenu nécessaire à la génération est transmis.
+- Choisissez un fournisseur selon votre niveau de confiance (Mistral = 🇫🇷 UE, données sous RGPD).
+
+### ⚪ Aucun LLM
+- Aucune donnée ne sort. Lettres générées par template uniquement.
+- Moins personnalisé mais 100% confidentiel.
 
 ---
 
 ## 🐛 Troubleshooting
 
-| Problème | Solution |
+| Problème / Problem | Solution |
 |----------|----------|
 | `ModuleNotFoundError` | `source .venv/bin/activate && pip install -r requirements.txt` |
-| Scan retourne 0 offres | Configurer France Travail API dans `[7] Changer la config` |
-| Ollama ne répond pas | `ollama serve` puis réessayer |
-| Lettres vides | Vérifier `_letter_template_path` dans `data/config.yaml` |
-| Windows : accent cassés | `chcp 65001` dans cmd avant de lancer |
+| Scan retourne 0 offres / 0 results | Configurer France Travail API dans `[8] Changer la config` |
+| Ollama ne répond pas / not responding | `ollama serve` puis réessayer. Ou passez à Mistral (cloud gratuit). |
+| Lettres vides / empty letters | Vérifier `_letter_template_path` dans `data/config.yaml` |
+| Windows : accents cassés / broken accents | `chcp 65001` dans cmd avant de lancer |
+| Erreur "git non trouvé" | Git optionnel — l'installateur fonctionne sans via téléchargement zip |
 
 ---
 
-## 📝 Licence
+## 📝 Licence / License
 
-**Propriétaire — Tous droits réservés.**
+**Propriétaire — Tous droits réservés / Proprietary — All rights reserved.**
 
-- ✅ Usage personnel autorisé
+- ✅ Usage personnel autorisé / Personal use allowed
 - ❌ Redistribution, modification, intégration commerciale interdites
-- Voir [LICENSE](LICENSE) pour le texte complet.
+- ❌ No redistribution, modification, or commercial integration
+- Voir / See [LICENSE](LICENSE) pour le texte complet.
 
 ---
 
-## 🤝 Contribuer
+## 🤝 Contribuer / Contributing
 
 Pull requests bienvenues. Ouvrez une issue avant les gros changements.
+Pull requests welcome. Open an issue before major changes.
 
 ---
 
-*Fait avec ❤️ par [Matthias Dubois](https://www.linkedin.com/in/matthias-dubois/) — [@theturbos](https://github.com/theturbos)*
+## ✨ Fonctionnalités / Features
+
+- 🔍 **Scan multi-source** : France Travail, SerpApi (Google Jobs → LinkedIn, WTTJ, Indeed, Apec), pages careers
+- 🎯 **Scoring dynamique** : vos mots-clés extraits de votre prompt, secteurs IA/secteur, pénalités intelligentes
+- 🧠 **NLP intégré** : écrivez "Head of AI en finance à Paris" → TOM comprend et configure tout
+- ✍️ **Lettres .docx personnalisées** : template cloné (votre formatage préservé), nettoyage anti-patterns IA
+- 🤖 **7 providers LLM** : Ollama, Mistral, OpenAI, DeepSeek, Groq, OpenRouter, ou aucun
+- 📊 **Dashboard** : pipeline de candidatures, stats, offres par catégorie
+- 🔄 **Updater intégré** : `python bot.py update` — vos données intactes
+- 🪟🍎🐧 **Cross-platform** : Windows, macOS, Linux
+- 🔒 **Privacy-first** : vos données, votre machine, votre choix du provider
+
+---
+
+*Fait avec ❤️ par / Made with ❤️ by [Matthias Dubois](https://www.linkedin.com/in/matthias-dubois/) — [@theturbos](https://github.com/theturbos)*
