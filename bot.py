@@ -224,6 +224,7 @@ def menu_main():
     print(_menu_item(8, "⚙️  Changer la config"))
     print(_menu_item(9, "🎤 Prompt — Changer mes critères"))
     print(_menu_item(10, "📝 Voir candidatures"))
+    print(_menu_item('U', "🔄 Mettre à jour TOM"))
     print(_menu_item(0, "🚪 Quitter"))
     choice = input(_dim(" Votre choix : ")).strip()
     return choice
@@ -573,6 +574,7 @@ def menu_config():
     current_lang = config.get("_lang", "fr")
     lang_label = "🇫🇷 Français" if current_lang == "fr" else "🇬🇧 English"
     print(f"  {_green('[L]')} Langue : {lang_label}")
+    print(f"  {_red('[D]')} Désinstaller TOM")
     print(f"  {_green('[M]')} Modifier un paramètre")
     print(f"  {_green('[S]')} Relancer le setup wizard")
     print(f"  {_green('[?]')} Aide / Guide débutant")
@@ -586,6 +588,8 @@ def menu_config():
         save_config(config)
         label = "🇬🇧 English" if new_lang == "en" else "🇫🇷 Français"
         print(f"  {_green('✅ Langue changée : ' + label)}")
+    elif choice == 'D':
+        _uninstall()
     elif choice == 'M':
         _edit_config_interactive(config)
     elif choice == 'S':
@@ -791,6 +795,45 @@ def run_update_cmd():
         print(f"  {_dim('Annulé.')}")
 
 
+def _uninstall():
+    """Désinstalle TOM avec triple confirmation."""
+    print()
+    print(f"  {_red('⚠️  DÉSINSTALLATION DE TOM')}")
+    print(f"  {_dim('Cette action est IRRÉVERSIBLE.')}")
+    print(f"  {_dim('Vos données (offres, candidatures, config) seront PERDUES.')}")
+    print()
+    
+    # Confirmation 1
+    msg1 = 'Tapez "desinstaller" pour confirmer : '
+    ans1 = input(f"  {_red(msg1)}").strip()
+    if ans1 != "desinstaller":
+        print(f"  {_dim('Annulé.')}")
+        return
+    
+    # Confirmation 2
+    msg2 = 'Tapez "oui" pour confirmer une seconde fois : '
+    ans2 = input(f"  {_red(msg2)}").strip()
+    if ans2.lower() != "oui":
+        print(f"  {_dim('Annulé.')}")
+        return
+    
+    # Confirmation 3
+    msg3 = 'Dernière chance — tapez "SUPPRIMER" pour tout effacer : '
+    ans3 = input(f"  {_red(msg3)}").strip()
+    if ans3 != "SUPPRIMER":
+        print(f"  {_dim('Annulé.')}")
+        return
+    
+    print(f"  {_red('Suppression en cours...')}")
+    import shutil
+    base = _BASE
+    # Supprime le dossier d'installation
+    shutil.rmtree(base, ignore_errors=True)
+    print(f"  {_green('✅ TOM a été désinstallé.')}")
+    print(f"  {_dim('Au revoir !')}")
+    sys.exit(0)
+
+
 def _check_update_on_start():
     """Vérifie discrètement si une mise à jour est disponible."""
     try:
@@ -864,6 +907,19 @@ def main_loop():
             menu_prompt()
         elif choice == "10":
             menu_candidatures()
+        elif choice.upper() == "U":
+            from src.updater import run_update
+            print()
+            ans = input(f"  {_dim('Mettre à jour TOM ? Vos données resteront intactes. Redémarrage automatique après. [y/n] : ')}").strip().lower()
+            if ans in ('y', 'yes', 'oui'):
+                run_update()
+                print(f"  {_green('✅ Mise à jour terminée. Redémarrage...')}")
+                # Relancer bot.py
+                import subprocess
+                subprocess.run([sys.executable, str(_BASE / 'bot.py')])
+                sys.exit(0)
+            else:
+                print(f"  {_dim('Annulé.')}")
         else:
             if choice.lower() == "setup":
                 run_setup()
