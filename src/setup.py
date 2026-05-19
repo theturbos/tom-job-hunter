@@ -56,13 +56,16 @@ def _pick_file(title, filetypes):
     return None
 
 
-def _ask(prompt, default="", required=False, choices=None, hint=""):
+def _ask(prompt, default="", required=False, choices=None, hint="", t=None):
     """Pose une question et retourne la réponse.
-    hint: affiché sous la question (ex: "Utilisé pour vos lettres de motivation")."""
+    hint: affiché sous la question (ex: "Utilisé pour vos lettres de motivation").
+    t: dictionnaire de textes traduits (pour les messages d'erreur)."""
+    if t is None:
+        t = {}
     suffix = ""
     req_mark = ""
     if required:
-        req_mark = f" {_red('*obligatoire')}"
+        req_mark = f" {_red(t.get('required_mark', '*obligatoire'))}"
         if hint:
             print(f"  {_dim('↳ ' + hint)}")
     if default:
@@ -81,11 +84,12 @@ def _ask(prompt, default="", required=False, choices=None, hint=""):
         if not ans and default:
             return default
         if not ans and required:
-            print(f"    {_red('Réponse requise.')}")
+            print(f"    {_red(t.get('answer_required', 'Réponse requise.'))}")
             continue
         if choices and ans.lower() not in [c.lower() for c in choices]:
             opts_str = ', '.join(choices)
-            print(f"    {_red(f'Choix invalide. Options : {opts_str}')}")
+            msg = t.get('invalid_choice', 'Choix invalide. Options :')
+            print(f"    {_red(f'{msg} {opts_str}')}")
             continue
         return ans
 
@@ -223,7 +227,20 @@ def run_wizard(existing_config=None, lang="fr"):
             "phone": "Téléphone",
             "available": "Disponibilité",
             "priorities": "🎯 Priorités de recherche",
+            "priorities_help1": "Ces priorités sont vos 3 critères de scoring personnels.",
+            "priorities_help2": "TOM les utilise pour CLASSER vos résultats, pas pour filtrer.",
+            "priorities_help3": "Ex: une offre 'chef de projet' avec IA = bon score si votre Prio1 est 'IA Stratégie'.",
+            "priorities_help4": "\u26a0\ufe0f  Ce ne sont PAS des mots-clés de recherche — c'est votre prompt qui détermine quelles offres remontent.",
+            "priorities_help5": "Les priorités servent UNIQUEMENT à trier les offres déjà trouvées par ordre de pertinence.",
+            "priorities_be_creative": "Soyez créatif — décrivez VOS priorités, pas celles de l'exemple.",
+            "prio1_label": "Priorité 1 (la + importante)",
+            "prio1_hint": "Votre objectif n°1 — pèse 50% du score. Ex: IA & Stratégie, Finance & Contrôle de gestion, Marketing Digital...",
+            "prio2_label": "Priorité 2",
+            "prio2_hint": "Second critère — pèse 30% du score. Ex: B2B SaaS, Industrie, Luxe, Scale-up...",
+            "prio3_label": "Priorité 3",
+            "prio3_hint": "Troisième critère — pèse 20% du score. Ex: International, Management, Freelance...",
             "skills": "🛠️  Vos compétences clés",
+            "skills_help": "Séparez par des virgules. Ex: Python, LLM, RAG, FP&A, Power BI, SQL",
             "education": "🎓 Formation",
             "degree": "Diplôme principal",
             "school": "École / Université",
@@ -251,7 +268,20 @@ def run_wizard(existing_config=None, lang="fr"):
             "phone": "Phone",
             "available": "Availability",
             "priorities": "🎯 Search priorities",
+            "priorities_help1": "These are your 3 personal scoring criteria.",
+            "priorities_help2": "TOM uses them to RANK results, not to filter.",
+            "priorities_help3": "Ex: a 'project manager' offer mentioning AI = high score if your Prio1 is 'AI Strategy'.",
+            "priorities_help4": "\u26a0\ufe0f  These are NOT search keywords — your prompt determines which offers appear.",
+            "priorities_help5": "Priorities ONLY sort already-found offers by relevance.",
+            "priorities_be_creative": "Be creative — describe YOUR priorities, not the example ones.",
+            "prio1_label": "Priority 1 (most important)",
+            "prio1_hint": "Your #1 goal — weighs 50% of the score. Ex: AI & Strategy, Finance & Controlling, Digital Marketing...",
+            "prio2_label": "Priority 2",
+            "prio2_hint": "Second criterion — weighs 30% of the score. Ex: B2B SaaS, Industry, Luxury, Scale-up...",
+            "prio3_label": "Priority 3",
+            "prio3_hint": "Third criterion — weighs 20% of the score. Ex: International, Management, Freelance...",
             "skills": "🛠️  Key skills",
+            "skills_help": "Separate with commas. Ex: Python, LLM, RAG, FP&A, Power BI, SQL",
             "education": "🎓 Education",
             "degree": "Main degree",
             "school": "School / University",
@@ -297,14 +327,16 @@ def run_wizard(existing_config=None, lang="fr"):
 
     # ── 1b. Priorités de recherche ─────────────────────────────
     print(f"  {_bold(t['priorities'])}")
-    print(f"  {_dim('Ces priorités aident TOM à classer vos résultats.')}")
-    print(f"  {_dim('Elles ne filtrent PAS les offres — elles pondèrent le scoring.')}")
-    print(f"  {_dim('Exemples : IA Stratégie, Finance+IA, Scale-up tech, Conseil, Marketing, Supply Chain...')}")
-    soyons_creatif = "Soyez créatif — décrivez VOS priorités, pas celles de l'exemple."
-    print(f"  {_dim(soyons_creatif)}")
-    prio1 = _ask("Priorité 1 (la + importante)", default="IA Stratégie", required=True, hint="Votre objectif n°1 — pèse le plus dans le scoring")
-    prio2 = _ask("Priorité 2", default="Finance+IA", hint="Second critère de classement")
-    prio3 = _ask("Priorité 3", default="Scale-up tech", hint="Troisième critère de classement")
+    print(f"  {_dim(t['priorities_help1'])}")
+    print(f"  {_dim(t['priorities_help2'])}")
+    print(f"  {_dim(t['priorities_help3'])}")
+    print(f"  {_yellow('  ' + t['priorities_help4'])}")
+    print(f"  {_dim(t['priorities_help5'])}")
+    print()
+    print(f"  {_dim(t['priorities_be_creative'])}")
+    prio1 = _ask(t["prio1_label"], default="IA Stratégie", required=True, hint=t["prio1_hint"], t=t)
+    prio2 = _ask(t["prio2_label"], default="Finance+IA", hint=t["prio2_hint"], t=t)
+    prio3 = _ask(t["prio3_label"], default="Scale-up tech", hint=t["prio3_hint"], t=t)
     prefs = config.get("preferences", {})
     prefs["priorities"] = [prio1, prio2, prio3]
     config["preferences"] = prefs
@@ -312,7 +344,7 @@ def run_wizard(existing_config=None, lang="fr"):
 
     # ── 1c. Skills ─────────────────────────────────────────────
     print(f"  {_bold(t['skills'])}")
-    print(f"  {_dim('Séparez par des virgules. Ex: Python, LLM, RAG, FP&A, Power BI, SQL')}")
+    print(f"  {_dim(t['skills_help'])}")
     skills_raw = _ask("Skills", default=", ".join(profile.get("skills", [])), required=True, hint="Utilisé pour le matching avec les offres et dans vos lettres")
     profile["skills"] = [s.strip() for s in skills_raw.split(",") if s.strip()] if skills_raw else []
     print()

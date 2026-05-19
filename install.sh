@@ -129,14 +129,14 @@ echo ""
 # ── Raccourci bureau (macOS/Linux) ──
 echo -e "📌 Création du raccourci..."
 
-# macOS: crée un .app bundle (double-clic depuis le Finder, supporte icône + Dock)
+# macOS: .command (double-clic → Terminal natif) + icône custom
 if [[ "$OSTYPE" == "darwin"* ]]; then
     DESKTOP="$HOME/Desktop"
+    SHORTCUT="$DESKTOP/TOM Job Hunter.command"
 
     # ── Icône .icns (nomenclature officielle Apple) ──
     ICONSET="$INSTALL_DIR/assets/TOM.iconset"
     mkdir -p "$ICONSET"
-    # Apple iconutil exige ces noms exacts (1x = nom_sans_@, 2x = nom_avec_@2x)
     sips -z 16 16   "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_16x16.png" 2>/dev/null
     sips -z 32 32   "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_16x16@2x.png" 2>/dev/null
     sips -z 32 32   "$INSTALL_DIR/assets/icon.png" --out "$ICONSET/icon_32x32.png" 2>/dev/null
@@ -152,52 +152,30 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         echo -e "${Y}⚠️  Icône .icns non créée (sips/iconutil indisponible)${NC}"
     rm -rf "$ICONSET"
 
-    # ── Création d'un .app bundle minimal (seule solution pour icône + Dock sur macOS) ──
-    APP_NAME="TOM Job Hunter"
-    APP_DIR="$DESKTOP/$APP_NAME.app"
-    mkdir -p "$APP_DIR/Contents/MacOS"
-    mkdir -p "$APP_DIR/Contents/Resources"
-
-    # Info.plist minimal
-    cat > "$APP_DIR/Contents/Info.plist" << TOMPLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key>
-    <string>TOM Job Hunter</string>
-    <key>CFBundleIconFile</key>
-    <string>TOM</string>
-    <key>CFBundleIdentifier</key>
-    <string>ai.openclaw.tom-job-hunter</string>
-    <key>CFBundleName</key>
-    <string>TOM Job Hunter</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>2.0</string>
-</dict>
-</plist>
-TOMPLIST
-
-    # Script exécutable (lance TOM dans une nouvelle fenêtre Terminal)
-    cat > "$APP_DIR/Contents/MacOS/TOM Job Hunter" << 'TOMEXEC'
+    # ── .command (double-clic = Terminal natif, garanti fonctionnel) ──
+    cat > "$SHORTCUT" << 'TOMCMD'
 #!/bin/bash
-# Ouvre TOM dans une nouvelle fenêtre Terminal (reste ouverte après le run)
-CMD="cd \"$HOME/.tom-job-hunter\" && [ -f \".venv/bin/activate\" ] && source .venv/bin/activate; python3 bot.py; echo ''; echo 'Appuyez sur Entrée pour fermer...'; read"
-osascript -e "tell application \"Terminal\"" -e "activate" -e "do script \"$CMD\""
-TOMEXEC
-    chmod +x "$APP_DIR/Contents/MacOS/TOM Job Hunter"
+cd "$HOME/.tom-job-hunter"
+if [ -f ".venv/bin/activate" ]; then source .venv/bin/activate; fi
+python3 bot.py
+TOMCMD
+    chmod +x "$SHORTCUT"
 
-    # Copier l'icône
-    cp "$INSTALL_DIR/assets/TOM.icns" "$APP_DIR/Contents/Resources/TOM.icns" 2>/dev/null
+    # ── Attribuer l'icône custom au .command (macOS) ──
+    if [ -f "$INSTALL_DIR/assets/TOM.icns" ]; then
+        # Écrit l'icône dans le resource fork du fichier
+        # sips peut écrire une icône custom dans le fichier lui-même
+        sips -i "$SHORTCUT" 2>/dev/null || true
+        # DeRez/Rez pour injecter l'icône custom (méthode Apple historique)
+        # Alternative: osascript pour setter l'icône via le Finder
+        osascript -e "set iconFile to POSIX file \"$INSTALL_DIR/assets/TOM.icns\"" \
+                  -e "set targetFile to POSIX file \"$SHORTCUT\"" \
+                  -e "tell application \"Finder\" to set icon of targetFile to iconFile" 2>/dev/null && \
+            echo -e "${G}✅ Icône attribuée au raccourci${NC}" || \
+            echo -e "${Y}⚠️  Icône non attribuée (le raccourci fonctionne quand même)${NC}"
+    fi
 
-    # Rafraîchir le cache icônes du Finder
-    touch "$APP_DIR" 2>/dev/null
-    # Notifier le Finder pour qu'il recharge l'icône du .app
-    osascript -e "tell application \"Finder\" to update item (POSIX file \"$APP_DIR\" as alias)" 2>/dev/null || true
-
-    echo -e "${G}✅ Raccourci Bureau créé : TOM Job Hunter.app${NC}"
+    echo -e "${G}✅ Raccourci Bureau créé : TOM Job Hunter${NC}"
 
 # Linux: crée un .desktop (double-clic depuis le bureau)
 elif [[ "$OSTYPE" == "linux"* ]]; then
@@ -225,6 +203,6 @@ python3 bot.py
 
 echo ""
 echo -e "  🚀 Pour lancer TOM V2.0 :"
-echo -e "     Double-clic sur ${Y}TOM Job Hunter.app${NC} sur le Bureau"
+echo -e "     Double-clic sur ${Y}TOM Job Hunter${NC} sur le Bureau"
 echo -e "     OU : ${Y}cd $INSTALL_DIR && source .venv/bin/activate && python3 bot.py${NC}"
 echo ""
