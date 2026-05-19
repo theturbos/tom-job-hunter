@@ -570,6 +570,9 @@ def menu_config():
     print()
 
     # Menu de modification
+    current_lang = config.get("_lang", "fr")
+    lang_label = "🇫🇷 Français" if current_lang == "fr" else "🇬🇧 English"
+    print(f"  {_green('[L]')} Langue : {lang_label}")
     print(f"  {_green('[M]')} Modifier un paramètre")
     print(f"  {_green('[S]')} Relancer le setup wizard")
     print(f"  {_green('[?]')} Aide / Guide débutant")
@@ -577,7 +580,13 @@ def menu_config():
     print(f"  {_dim('[Entrée] Retour')}")
     choice = input(_dim("  Votre choix : ")).strip().upper()
 
-    if choice == 'M':
+    if choice == 'L':
+        new_lang = "en" if current_lang == "fr" else "fr"
+        config["_lang"] = new_lang
+        save_config(config)
+        label = "🇬🇧 English" if new_lang == "en" else "🇫🇷 Français"
+        print(f"  {_green('✅ Langue changée : ' + label)}")
+    elif choice == 'M':
         _edit_config_interactive(config)
     elif choice == 'S':
         from src.setup import run_wizard
