@@ -24,8 +24,8 @@ def _ask(prompt, default="", required=False, choices=None):
     suffix = ""
     if default:
         suffix = f" {_dim(f'[{default}]')}"
-    options_str = '/'.join(choices)
     if choices:
+        options_str = '/'.join(choices)
         suffix = f" {_dim('(' + options_str + ')')}"
 
     while True:
