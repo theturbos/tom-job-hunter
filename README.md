@@ -1,5 +1,4 @@
-# 🔍 TOM V2.0 — Agent Personnel de Recherche d'Emploi
-# 🔍 TOM V2.0 — Personal Job Search Agent
+# 🔍 TOM V2.0 — Agent Personnel de Recherche d'Emploi / Personal Job Search Agent
 
 > 🇫🇷 Votre bot CLI qui scanne les offres, match votre profil, génère des lettres de motivation et suit vos candidatures.
 > 🇬🇧 Your CLI bot that scans job listings, matches your profile, generates cover letters, and tracks applications.
