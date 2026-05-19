@@ -117,14 +117,14 @@ echo [INFO] Suite sans virtualenv...
 
 :wizard
 
-REM 5. Raccourci bureau avec icône
-REM Utilise PowerShell pour créer un vrai .lnk (icône personnalisée)
+REM 5. Raccourci bureau avec icône (recréé à chaque install)
 echo.
 echo   Creation du raccourci bureau...
 
 set "DESKTOP=%USERPROFILE%\Desktop"
 set "SHORTCUT=%DESKTOP%\TOM Job Hunter.lnk"
 set "LAUNCHER=%INSTALL_DIR%\tom-launcher.bat"
+set "ICON=%INSTALL_DIR%\assets\icon.ico"
 
 REM Crée le launcher .bat (invisible, appelle le vrai bot)
 (
@@ -136,21 +136,33 @@ REM Crée le launcher .bat (invisible, appelle le vrai bot)
   echo pause
 ) > "%LAUNCHER%"
 
+REM Supprime l'ancien raccourci s'il existe
+if exist "%SHORTCUT%" del /q "%SHORTCUT%" >nul 2>&1
+if exist "%DESKTOP%\TOM Job Hunter.bat" del /q "%DESKTOP%\TOM Job Hunter.bat" >nul 2>&1
+
 REM Crée le raccourci .lnk avec icône via PowerShell
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$WshShell = New-Object -ComObject WScript.Shell; ^
-   $Shortcut = $WshShell.CreateShortcut('%SHORTCUT%'); ^
-   $Shortcut.TargetPath = '%LAUNCHER%'; ^
-   $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; ^
-   $Shortcut.IconLocation = '%INSTALL_DIR%\assets\icon.ico'; ^
-   $Shortcut.Save()" 2>nul
+if exist "%ICON%" (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+      "$WshShell = New-Object -ComObject WScript.Shell; ^
+       $Shortcut = $WshShell.CreateShortcut('%SHORTCUT%'); ^
+       $Shortcut.TargetPath = '%LAUNCHER%'; ^
+       $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; ^
+       $Shortcut.IconLocation = '%ICON%'; ^
+       $Shortcut.Save()" 2>nul
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+      "$WshShell = New-Object -ComObject WScript.Shell; ^
+       $Shortcut = $WshShell.CreateShortcut('%SHORTCUT%'); ^
+       $Shortcut.TargetPath = '%LAUNCHER%'; ^
+       $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; ^
+       $Shortcut.Save()" 2>nul
+)
 
 if exist "%SHORTCUT%" (
     echo [OK] Raccourci cree sur le Bureau : TOM Job Hunter
-    echo       Avec icone personnalisee
+    if exist "%ICON%" echo       Avec icone personnalisee
 ) else (
-    REM Fallback : .bat simple si PowerShell échoue
-    echo [WARN] Creation .lnk echouee, fallback .bat sans icone
+    echo [WARN] Creation .lnk echouee, fallback .bat
     copy /Y "%LAUNCHER%" "%DESKTOP%\TOM Job Hunter.bat" >nul 2>&1
 )
 
@@ -163,7 +175,7 @@ echo.
 echo   Lancement du wizard de configuration...
 echo.
 
-python bot.py setup
+python bot.py
 
 echo.
 echo   🚀 Pour lancer TOM V2.0 :
