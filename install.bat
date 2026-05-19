@@ -143,7 +143,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
    $Shortcut.TargetPath = '%LAUNCHER%'; ^
    $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; ^
    $Shortcut.IconLocation = '%INSTALL_DIR%\assets\icon.ico'; ^
-   $Shortcut.Description = 'TOM V2.0 - Agent de recherche d''emploi'; ^
    $Shortcut.Save()" 2>nul
 
 if exist "%SHORTCUT%" (
