@@ -140,23 +140,35 @@ REM Supprime l'ancien raccourci s'il existe
 if exist "%SHORTCUT%" del /q "%SHORTCUT%" >nul 2>&1
 if exist "%DESKTOP%\TOM Job Hunter.bat" del /q "%DESKTOP%\TOM Job Hunter.bat" >nul 2>&1
 
-REM Crée le raccourci .lnk avec icône via PowerShell
+REM Crée le raccourci .lnk avec icône via un script PowerShell temporaire
+set "PSSCRIPT=%INSTALL_DIR%\_create_shortcut.ps1"
 if exist "%ICON%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-      "$WshShell = New-Object -ComObject WScript.Shell; ^
-       $Shortcut = $WshShell.CreateShortcut('%SHORTCUT%'); ^
-       $Shortcut.TargetPath = '%LAUNCHER%'; ^
-       $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; ^
-       $Shortcut.IconLocation = '%ICON%'; ^
-       $Shortcut.Save()" 2>nul
+    (
+        echo $ShortcutPath = '%SHORTCUT%'
+        echo $TargetPath   = '%LAUNCHER%'
+        echo $WorkDir      = '%INSTALL_DIR%'
+        echo $IconPath     = '%ICON%'
+        echo $WshShell = New-Object -ComObject WScript.Shell
+        echo $Shortcut = $WshShell.CreateShortcut($ShortcutPath^)
+        echo $Shortcut.TargetPath = $TargetPath
+        echo $Shortcut.WorkingDirectory = $WorkDir
+        echo $Shortcut.IconLocation = $IconPath
+        echo $Shortcut.Save(^)
+    ) > "%PSSCRIPT%"
 ) else (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-      "$WshShell = New-Object -ComObject WScript.Shell; ^
-       $Shortcut = $WshShell.CreateShortcut('%SHORTCUT%'); ^
-       $Shortcut.TargetPath = '%LAUNCHER%'; ^
-       $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; ^
-       $Shortcut.Save()" 2>nul
+    (
+        echo $ShortcutPath = '%SHORTCUT%'
+        echo $TargetPath   = '%LAUNCHER%'
+        echo $WorkDir      = '%INSTALL_DIR%'
+        echo $WshShell = New-Object -ComObject WScript.Shell
+        echo $Shortcut = $WshShell.CreateShortcut($ShortcutPath^)
+        echo $Shortcut.TargetPath = $TargetPath
+        echo $Shortcut.WorkingDirectory = $WorkDir
+        echo $Shortcut.Save(^)
+    ) > "%PSSCRIPT%"
 )
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PSSCRIPT%" 2>nul
+del /q "%PSSCRIPT%" >nul 2>&1
 
 if exist "%SHORTCUT%" (
     echo [OK] Raccourci cree sur le Bureau : TOM Job Hunter
