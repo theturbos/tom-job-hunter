@@ -20,8 +20,11 @@ echo -e "${C}━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # ── 1. Vérifications ──────────────────────────────────────────
-# Réattache stdin au terminal si dispo (nécessaire pour input() dans wizard)
-if [ -t 0 ]; then :; else exec < /dev/tty 2>/dev/null || true; fi
+# Détecte si on est dans un pipe (curl|bash) — le wizard ne peut pas tourner sans terminal
+IS_PIPE=false
+if [ ! -t 0 ]; then
+    IS_PIPE=true
+fi
 
 if ! command -v python3 &>/dev/null; then
     echo -e "${R}❌ Python 3 requis.${NC}"
@@ -96,13 +99,16 @@ if [ ! -d ".venv" ]; then
         echo -e "${G}  ✅ TOM V2.0 installé !${NC}"
         echo -e "${G}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
-        echo -e "  ${C}Lancement du wizard de configuration...${NC}"
-        echo ""
-        python3 bot.py
-        echo ""
         echo -e "  ${G}🚀 Pour lancer TOM V2.0 :${NC}"
         echo -e "  ${Y}cd $INSTALL_DIR && python3 bot.py${NC}"
         echo ""
+        if [ "$IS_PIPE" = true ]; then
+            echo -e "  ${C}Le wizard se lancera automatiquement au premier lancement.${NC}"
+        else
+            echo -e "  ${C}Lancement du wizard...${NC}"
+            echo ""
+            python3 bot.py
+        fi
         exit 0
     }
 fi
@@ -191,13 +197,15 @@ TOMDESKTOP
 fi
 
 echo ""
-echo -e "  ${C}Lancement du wizard de configuration...${NC}"
-echo ""
-
-python3 bot.py
-
-echo ""
 echo -e "  🚀 Pour lancer TOM V2.0 :"
 echo -e "     Double-clic sur ${Y}TOM Job Hunter${NC} sur le Bureau"
 echo -e "     OU : ${Y}cd $INSTALL_DIR && source .venv/bin/activate && python3 bot.py${NC}"
+if [ "$IS_PIPE" = true ]; then
+    echo -e "  ${C}Le wizard se lancera automatiquement au premier lancement.${NC}"
+else
+    echo ""
+    echo -e "  ${C}Lancement du wizard...${NC}"
+    echo ""
+    python3 bot.py
+fi
 echo ""
