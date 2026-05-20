@@ -20,8 +20,8 @@ echo -e "${C}━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # ── 1. Vérifications ──────────────────────────────────────────
-# Réattache stdin au terminal (important pour curl|bash)
-exec < /dev/tty
+# Réattache stdin au terminal si dispo (nécessaire pour input() dans wizard)
+if [ -t 0 ]; then :; else exec < /dev/tty 2>/dev/null || true; fi
 
 if ! command -v python3 &>/dev/null; then
     echo -e "${R}❌ Python 3 requis.${NC}"
