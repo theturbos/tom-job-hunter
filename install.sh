@@ -155,23 +155,58 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         echo -e "${Y}⚠️  Icône .icns non créée (sips/iconutil indisponible)${NC}"
     rm -rf "$ICONSET"
 
-    # ── .command (double-clic = Terminal natif, garanti fonctionnel) ──
-    cat > "$SHORTCUT" << 'TOMCMD'
-#!/bin/bash
-cd "$HOME/.tom-job-hunter"
-if [ -f ".venv/bin/activate" ]; then source .venv/bin/activate; fi
-python3 bot.py
-TOMCMD
-    chmod +x "$SHORTCUT"
+    # ── .app bundle avec icône (double-clic Finder + icône Dock) ──
+    APP_NAME="TOM Job Hunter"
+    APP_DIR="$DESKTOP/$APP_NAME.app"
+    rm -rf "$APP_DIR"
+    mkdir -p "$APP_DIR/Contents/MacOS"
+    mkdir -p "$APP_DIR/Contents/Resources"
 
-    # ── Attribuer l'icône custom au .command (macOS) ──
+    # Info.plist
+    cat > "$APP_DIR/Contents/Info.plist" << TOMPLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>launch</string>
+    <key>CFBundleIconFile</key>
+    <string>TOM</string>
+    <key>CFBundleIdentifier</key>
+    <string>ai.openclaw.tom-job-hunter</string>
+    <key>CFBundleName</key>
+    <string>TOM Job Hunter</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>2.0</string>
+    <key>LSUIElement</key>
+    <false/>
+</dict>
+</plist>
+TOMPLIST
+
+    # Script de lancement (ouvre Terminal.app avec la commande TOM)
+    cat > "$APP_DIR/Contents/MacOS/launch" << 'LAUNCH'
+#!/bin/bash
+DIR="$HOME/.tom-job-hunter"
+osascript -e "tell application \"Terminal\" to do script \"cd '$DIR' && source '$DIR/.venv/bin/activate' 2>/dev/null; python3 '$DIR/bot.py'; exec bash\""
+LAUNCH
+    chmod +x "$APP_DIR/Contents/MacOS/launch"
+
+    # Copier l'icône
     if [ -f "$INSTALL_DIR/assets/TOM.icns" ]; then
-        osascript -e "set iconFile to POSIX file \"$INSTALL_DIR/assets/TOM.icns\"" -e "set targetFile to POSIX file \"$SHORTCUT\"" -e "tell application \"Finder\" to set icon of targetFile to iconFile" 2>/dev/null && \
-            echo -e "${G}✅ Icône attribuée au raccourci${NC}" || \
-            echo -e "${Y}⚠️  Icône non attribuée (le raccourci fonctionne quand même)${NC}"
+        cp "$INSTALL_DIR/assets/TOM.icns" "$APP_DIR/Contents/Resources/TOM.icns"
+        touch "$APP_DIR"
+        echo -e "${G}✅ Raccourci Bureau créé : TOM Job Hunter.app${NC}"
+    else
+        echo -e "${Y}✅ Raccourci Bureau créé (sans icône) : TOM Job Hunter.app${NC}"
     fi
 
-    echo -e "${G}✅ Raccourci Bureau créé : TOM Job Hunter${NC}"
+    # Supprime aussi l'ancien .command s'il existe
+    rm -f "$SHORTCUT" 2>/dev/null
+
+    echo -e "${G}✅ Raccourci Bureau créé : TOM Job Hunter.app${NC}"
 
 # Linux: crée un .desktop (double-clic depuis le bureau)
 elif [[ "$OSTYPE" == "linux"* ]]; then
