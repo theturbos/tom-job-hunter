@@ -9,7 +9,7 @@ import os
 import yaml
 import re
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
 _BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_BASE))
@@ -32,56 +32,12 @@ OFFERS_PATH = Path("data/offres.md")
 DOUBLONS_PATH = Path("data/doublons.md")
 CANDIDATURES_PATH = Path("data/candidatures.md")
 
-# ── Couleurs : détection automatique (Windows CMD ne supporte pas ANSI) ─
-_USE_COLORS = True
-if sys.platform == "win32":
-    # Essayer d'activer le VT processing sur Windows 10+
-    try:
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        h = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
-        mode = ctypes.c_ulong()
-        if kernel32.GetConsoleMode(h, ctypes.byref(mode)):
-            kernel32.SetConsoleMode(h, mode.value | 0x0004)  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-            # Vérifier si ça marche vraiment
-            _USE_COLORS = True
-        else:
-            _USE_COLORS = False
-    except Exception:
-        _USE_COLORS = False
-    # Fallback : si on est dans un CMD classique sans VT, désactiver
-    if _USE_COLORS:
-        # PowerShell et Windows Terminal supportent ANSI, pas cmd.exe classique
-        term = os.environ.get("WT_SESSION", "") or os.environ.get("TERM", "")
-        if not term:
-            _USE_COLORS = False
+# ── Couleurs : délégué à src.colors (cross-platform, colorama fallback) ─
+from src.colors import green as _green, red as _red, yellow as _yellow
+from src.colors import cyan as _cyan, bold as _bold, dim as _dim, italic as _italic
+from src.colors import bar as _make_bar
 
-def _strip_ansi(t):
-    """Supprime tous les codes ANSI d'un string."""
-    return re.sub(r'\033\[[0-9;]*m', '', t)
-
-def _pad(t, width):
-    """Pad un texte coloré à une largeur fixe (compense les codes ANSI)."""
-    visible = _strip_ansi(t)
-    padding = max(0, width - len(visible))
-    return t + ' ' * padding
-
-def _color(color_code, t):
-    """Applique une couleur ANSI ou retourne le texte brut."""
-    if _USE_COLORS:
-        return f"\033[{color_code}m{t}\033[0m"
-    return t
-
-def _green(t):  return _color("32", t)
-def _red(t):    return _color("31", t)
-def _yellow(t): return _color("33", t)
-def _cyan(t):   return _color("36", t)
-def _bold(t):   return _color("1", t)
-def _dim(t):    return _color("2", t)
-
-def _italic(t): return _color("3", t)
-
-BAR = ("\033[1;36m" + "─" * 60 + "\033[0m") if _USE_COLORS else "=" * 60
+BAR = _make_bar()
 
 def _header(title):
     b = BAR
@@ -309,6 +265,7 @@ def menu_scan():
 
 def _save_offers(new_offers):
     """Merge les nouvelles offres avec les existantes. Garde les statuts."""
+    import fcntl
     existing = load_offers()
     existing_map = {o['id']: o for o in existing}
 
@@ -327,6 +284,24 @@ def _save_offers(new_offers):
         merged_map[oid] = o
 
     all_offers = sorted(merged_map.values(), key=lambda x: x.get('score', 0), reverse=True)
+
+    # Nettoyage : archiver les offres de plus de 45 jours sans statut actif
+    cutoff_date = datetime.now() - timedelta(days=45)
+    active_statuses = ('✅ Postulé', '📞 Entretien')
+    expired_count = 0
+    for o in all_offers:
+        status = o.get('status', '')
+        if any(s in status for s in active_statuses):
+            continue
+        date_str = o.get('date', '')
+        if date_str:
+            try:
+                offer_date = datetime.strptime(date_str, '%d/%m/%Y')
+                if offer_date < cutoff_date:
+                    o['status'] = '🗄️ Expirée'
+                    expired_count += 1
+            except (ValueError, TypeError):
+                pass
 
     lines = [
         "# 📊 Offres d'emploi — TOM V2.0\n",
@@ -351,8 +326,16 @@ def _save_offers(new_offers):
             "",
         ]
     OFFERS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(OFFERS_PATH, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
+    # File lock pour éviter corruption si 2 instances simultanées
+    try:
+        with open(OFFERS_PATH, "w", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            f.write("\n".join(lines))
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+    except (ImportError, ModuleNotFoundError, NameError):
+        # Windows ou env sans fcntl — fallback sans lock
+        with open(OFFERS_PATH, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
 
     new_count = sum(1 for o in new_offers if o['id'] not in existing_map)
     updated_count = sum(1 for o in new_offers if o['id'] in existing_map)
@@ -877,8 +860,10 @@ def _check_update_on_start():
             print(f"\n  {_yellow('🔔 Mise à jour disponible :')} {_cyan('v' + remote_ver)}")
             print(f"  {_dim('Lancez')} {_cyan('python bot.py update')} {_dim('pour mettre à jour (vos données sont protégées).')}")
             print()
-    except Exception:
-        pass  # Silencieux — ne pas bloquer le démarrage
+    except Exception as e:
+        # Silencieux — ne pas bloquer le démarrage
+        if os.environ.get("TOM_DEBUG"):
+            print(f"  {_dim('[DEBUG] check_update: {e}')}")
 
 
 def _show_token_usage():

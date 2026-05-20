@@ -168,7 +168,9 @@ def _web_search_careers(config):
             )
             with urllib.request.urlopen(req, context=_SSL_CTX, timeout=15) as resp:
                 text = resp.read().decode("utf-8", errors="ignore")
+            import html
             for a in re.findall(r'<a rel="nofollow" class="result__a" href="([^"]+)">', text):
+                a = html.unescape(a)  # décode &amp; → &, &#x27; → ', etc.
                 if a in urls_seen:
                     continue
                 urls_seen.add(a)
