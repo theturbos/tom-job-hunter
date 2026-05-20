@@ -25,7 +25,7 @@ if [ -t 0 ]; then
     exec 3<&0  # Sauvegarde stdin dans fd 3
 fi
 
-if ! command -v python3 &>/dev/null; then
+if ! command -v python3 >/dev/null 2>&1; then
     echo -e "${R}❌ Python 3 requis.${NC}"
     echo -e "   macOS :  ${Y}brew install python3${NC}"
     echo -e "   Ubuntu : ${Y}sudo apt install python3 python3-venv${NC}"
@@ -40,7 +40,7 @@ if [ "$PYMAJ" -lt 3 ]; then
 fi
 echo -e "${G}✅ Python $PYVER${NC}"
 
-if ! command -v git &>/dev/null; then
+if ! command -v git >/dev/null 2>&1; then
     echo -e "${Y}⚠️  git non trouvé — on continuera sans clone${NC}"
     HAS_GIT=0
 else

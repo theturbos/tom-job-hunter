@@ -301,8 +301,9 @@ def run_wizard(existing_config=None, lang="fr"):
         }
     }
     t = T.get(lang, T["fr"])
-    # Stocke la langue dans la config
+    # Stocke la langue et version du format de config
     config["_lang"] = lang
+    config["_config_version"] = 1
 
     print(f"\n{BAR}")
     print(f"  {_bold(t['title'])}")

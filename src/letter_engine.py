@@ -49,6 +49,7 @@ IA_CLEANUP_PATTERNS = [
     (r'(?<!\w)—(?!\w)', ','),        # em dash isolé → virgule
     (r'(?<!\w)--(?!\w)', ','),       # double dash → virgule
     (r'—\s*—', ','),                 # double em dash
+    (r'(\w)—(\w)', r'\1 — \2'),     # em dash entre mots → "mot — mot"
     (r'\s{2,}—\s{2,}', '. '),        # em dash milieu phrase
     # Clichés IA en français
     (r'dans un monde en constante évolution', 'dans notre secteur'),
@@ -325,7 +326,12 @@ def _fill_template_docx(doc, output_path, company, title, body_text, recipient="
                 # Nettoie le body_text : retire la formule de politesse et signature
                 # si elles sont déjà dans le template
                 clean_body = _strip_signature(body_text)
-                _inject_corps(para, para.text, clean_body)
+                try:
+                    _inject_corps(para, para.text, clean_body)
+                except Exception:
+                    # Fallback: remplacement simple si injection échoue
+                    txt = para.text.replace("{{CORPS}}", body_text)
+                    _set_para_text(para, txt)
                 break
 
         # Tableaux (pied de page etc)
@@ -397,6 +403,10 @@ def _inject_corps(para, full_text, body_text):
 
     # Récupère le parent et l'index pour insérer
     parent = para._element.getparent()
+    if parent is None:
+        # Paragraphe orphelin — fallback safe: remplace tout le texte
+        _set_para_text(para, body_text)
+        return ""
     idx = list(parent).index(para._element)
 
     # 1er paragraphe : before + 1er § du corps
