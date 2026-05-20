@@ -20,10 +20,9 @@ echo -e "${C}━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # ── 1. Vérifications ──────────────────────────────────────────
-# Détecte si on est dans un pipe (curl|bash) — le wizard ne peut pas tourner sans terminal
-IS_PIPE=false
-if [ ! -t 0 ]; then
-    IS_PIPE=true
+# Sauvegarde le stdin d'origine pour le wizard (nécessite un vrai terminal)
+if [ -t 0 ]; then
+    exec 3<&0  # Sauvegarde stdin dans fd 3
 fi
 
 if ! command -v python3 &>/dev/null; then
@@ -102,13 +101,11 @@ if [ ! -d ".venv" ]; then
         echo -e "  ${G}🚀 Pour lancer TOM V2.0 :${NC}"
         echo -e "  ${Y}cd $INSTALL_DIR && python3 bot.py${NC}"
         echo ""
-        if [ "$IS_PIPE" = true ]; then
-            echo -e "  ${C}Le wizard se lancera automatiquement au premier lancement.${NC}"
-        else
-            echo -e "  ${C}Lancement du wizard...${NC}"
-            echo ""
-            python3 bot.py
-        fi
+        echo -e "  ${C}Lancement du wizard...${NC}"
+        echo ""
+        python3 bot.py < /dev/tty 2>/dev/null || {
+            echo -e "  ${C}Le wizard se lancera au prochain lancement manuel.${NC}"
+        }
         exit 0
     }
 fi
@@ -169,9 +166,7 @@ TOMCMD
 
     # ── Attribuer l'icône custom au .command (macOS) ──
     if [ -f "$INSTALL_DIR/assets/TOM.icns" ]; then
-        osascript -e "set iconFile to POSIX file \"$INSTALL_DIR/assets/TOM.icns\"" \
-                  -e "set targetFile to POSIX file \"$SHORTCUT\"" \
-                  -e "tell application \"Finder\" to set icon of targetFile to iconFile" 2>/dev/null && \
+        osascript -e "set iconFile to POSIX file \"$INSTALL_DIR/assets/TOM.icns\"" -e "set targetFile to POSIX file \"$SHORTCUT\"" -e "tell application \"Finder\" to set icon of targetFile to iconFile" 2>/dev/null && \
             echo -e "${G}✅ Icône attribuée au raccourci${NC}" || \
             echo -e "${Y}⚠️  Icône non attribuée (le raccourci fonctionne quand même)${NC}"
     fi
@@ -200,12 +195,10 @@ echo ""
 echo -e "  🚀 Pour lancer TOM V2.0 :"
 echo -e "     Double-clic sur ${Y}TOM Job Hunter${NC} sur le Bureau"
 echo -e "     OU : ${Y}cd $INSTALL_DIR && source .venv/bin/activate && python3 bot.py${NC}"
-if [ "$IS_PIPE" = true ]; then
-    echo -e "  ${C}Le wizard se lancera automatiquement au premier lancement.${NC}"
-else
-    echo ""
-    echo -e "  ${C}Lancement du wizard...${NC}"
-    echo ""
-    python3 bot.py
-fi
+echo ""
+echo -e "  ${C}Lancement du wizard...${NC}"
+echo ""
+python3 bot.py < /dev/tty 2>/dev/null || {
+    echo -e "  ${C}Lancez manuellement : cd $INSTALL_DIR && python3 bot.py${NC}"
+}
 echo ""
