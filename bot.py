@@ -393,22 +393,23 @@ def menu_dashboard():
     print(_header(_t("dash_title")))
     labels = get_cat_labels(config)
     print()
-    
-    # ── Ligne 1 : KPIs principaux ──
-    c1, c2, c3, c4 = 30, 22, 22, 14
-    print(f"  {_pad(_bold(_t('dash_kpi_offers')), c1)} {_pad(_bold(_t('dash_kpi_score')), c2)} {_pad(_bold(_t('dash_kpi_letters')), c3)} {_bold(_t('dash_kpi_dupes'))}")
-    print(f"  {_pad(_green(str(total)), c1)} {_pad(_cyan(str(avg)+'/10'), c2)} {_pad(_green(str(letters)), c3)} {_dim(str(doublons))}")
+
+    # ── KPIs principaux (sans padding forcé, naturel + tabulation) ──
+    kpi_labels = f"  {_bold(_t('dash_kpi_offers'))}    {_bold(_t('dash_kpi_score'))}    {_bold(_t('dash_kpi_letters'))}    {_bold(_t('dash_kpi_dupes'))}"
+    kpi_values = f"  {_green(str(total))}              {_cyan(str(avg)+'/10')}           {_green(str(letters))}              {_dim(str(doublons))}"
+    print(kpi_labels)
+    print(kpi_values)
     print()
-    
-    # ── Ligne 2 : Catégories ──
+
+    # ── Catégories ──
     label_a = labels["A"]
     label_b = labels["B"]
     print(f"  {_bold(_t('dash_categories'))}")
-    print(f"  {_pad(_green('Cat A — '+label_a), c1)} {_cyan(str(cat_a)+' offres')}")
-    print(f"  {_pad(_yellow('Cat B — '+label_b), c1)} {_yellow(str(cat_b)+' offres')}")
+    print(f"    {_green('Cat A — '+label_a)}  →  {_cyan(str(cat_a)+' offres')}")
+    print(f"    {_yellow('Cat B — '+label_b)}  →  {_yellow(str(cat_b)+' offres')}")
     print()
-    
-    # ── Ligne 3 : Pipeline ──
+
+    # ── Pipeline ──
     print(f"  {_bold(_t('dash_pipeline'))}")
     pipe_parts = [
         _dim(_t('dash_total_offers', total)),
@@ -420,13 +421,16 @@ def menu_dashboard():
     pipe = f"  {'  →  '.join(pipe_parts)}"
     print(pipe)
     print()
-    
-    # ── Top offres ──
-    w_score, w_co, w_title, w_cat, w_letter = 10, 28, 34, 6, 5
+
+    # ── Top offres (tableau compact) ──
     if offers[:7]:
         print(f"  {_bold(_t('dash_top'))}")
-        print(f"  {_t('dash_col_score'):<{w_score}}{_t('dash_col_company'):<{w_co}}{_t('dash_col_title'):<{w_title}}{_t('dash_col_cat'):<{w_cat}}{_t('dash_col_letter')}")
-        print(f"  {'─'*9}  {'─'*26}  {'─'*32}  {'─'*4}  {'─'*5}")
+        W_SC, W_CO, W_TI, W_CA, W_LE = 10, 26, 34, 6, 8
+        sep = f"  {'─'*W_SC}─{'─'*W_CO}─{'─'*W_TI}─{'─'*W_CA}─{'─'*W_LE}"
+        hdr = f"  {_pad(_t('dash_col_score'), W_SC)} {_pad(_t('dash_col_company'), W_CO)} {_pad(_t('dash_col_title'), W_TI)} {_pad(_t('dash_col_cat'), W_CA)} {_pad(_t('dash_col_letter'), W_LE)}"
+        print(sep)
+        print(hdr)
+        print(sep)
         for o in offers[:7]:
             if o['score'] >= 8:
                 sc = _green(f"⭐ {o['score']}/10")
@@ -434,11 +438,12 @@ def menu_dashboard():
                 sc = _cyan(f"  {o['score']}/10")
             else:
                 sc = _dim(f"  {o['score']}/10")
-            co = o["company"][:26]
-            ti = o["title"][:32]
-            ca = _green("A") if o["category"] == "A" else _yellow("B")
-            le = _green("✓") if o["has_letter"] else _dim("—")
-            print(f"  {_pad(sc, w_score)}{_pad(co, w_co)}{_pad(ti, w_title)}{_pad(ca, w_cat)}{le}")
+            co = o["company"][:25]
+            ti = o["title"][:33]
+            ca = _green("A ") if o["category"] == "A" else _yellow("B ")
+            le = _green(" ✓") if o["has_letter"] else _dim(" —")
+            print(f"  {_pad(sc, W_SC)} {_pad(co, W_CO)} {_pad(ti, W_TI)} {_pad(ca, W_CA)} {_pad(le, W_LE)}")
+        print(sep)
     print()
 
 def menu_offers():
@@ -752,29 +757,32 @@ def _edit_config_interactive(config):
 
 def menu_prompt():
     print(_header("🎤 Mise à jour des critères"))
-    print(f"  {_dim('Décrivez ce que vous cherchez en langage naturel :')}")
-    example_line = 'Ex: "Je cherche un poste de Head of AI dans la finance, Paris uniquement"'
-    print(f"  {_dim(example_line)}")
-    print(f"  {_dim('(terminez par une ligne vide)')}")
+    print(f"  {_dim('Décrivez ce que vous cherchez en une ou plusieurs phrases :')}")
+    example = 'Ex: "Je cherche un poste de Head of AI dans la finance, Paris uniquement"'
+    print(f"  {_dim(example)}")
+    print(f"  {_bold('👉 Appuyez sur ENTREE deux fois pour valider (une fois pour finir la saisie, la seconde pour confirmer)')}")
     print()
     lines = []
     while True:
         try:
-            line = input("  ")
+            line = input("  > ")
         except EOFError:
             break
         if line.strip() == "":
-            break
+            if lines:
+                break  # Première ligne vide : fin de saisie
+            else:
+                continue  # Ignore les lignes vides au début
         lines.append(line)
     prompt_text = "\n".join(lines)
     if not prompt_text.strip():
-        print("  Aucune saisie.")
+        print(f"  {_yellow('Aucune saisie. Annulé.')}")
         return
     config = load_config()
     config = interpret_prompt(config, prompt_text)
     save_config(config)
-    print(f"\n  {_green('✅ Critères mis à jour. Tapez [1] pour scanner à nouveau.')}")
-    print(f"  {_dim('↳ Pas besoin de redémarrer — les changements sont immédiats.')}")
+    print(f"\n  {_green('✅ Critères mis à jour.')}")
+    print(f"  {_dim('↳ Tapez [1] pour lancer un scan avec vos nouveaux critères.')}")
 
 def menu_candidatures():
     if not CANDIDATURES_PATH.exists():
