@@ -20,6 +20,7 @@ from src.letter_engine import generate_all
 from src.cv_parser import parse as parse_cv
 from src.prompt_engine import run as interpret_prompt
 from src.prompt_engine import get_token_usage as get_token_usage
+from src.i18n import t as _t
 
 VERSION = "2.0"
 CREATOR = "Matthias Dubois"
@@ -203,7 +204,7 @@ def save_candidate_status(offer_id, new_status):
 # ── Header / menu ─────────────────────────────────────────────
 
 def show_header():
-    print(_header("TOM V2.0 — Agent Personnel de Recherche d'Emploi"))
+    print(_header(_t("menu_title")))
     if CONFIG_PATH.exists():
         config = load_config()
         profile = config.get("profile", {})
@@ -220,19 +221,19 @@ def show_header():
     print()
 
 def menu_main():
-    print(_menu_item(1, "🔍 Scanner les offres"))
-    print(_menu_item(2, "📊 Dashboard & Statistiques"))
-    print(_menu_item(3, "📋 Voir les offres"))
-    print(_menu_item(4, "✅ J'ai postulé"))
-    print(_menu_item(5, "📞 Entretien obtenu"))
-    print(_menu_item(6, "❌ Rejet reçu"))
-    print(_menu_item(7, "✍️  Générer des lettres"))
-    print(_menu_item(8, "⚙️  Changer la config"))
-    print(_menu_item(9, "🎤 Prompt — Changer mes critères"))
-    print(_menu_item(10, "📝 Voir candidatures"))
-    print(_menu_item('U', "🔄 Mettre à jour TOM"))
-    print(_menu_item(0, "🚪 Quitter"))
-    choice = input(_dim(" Votre choix : ")).strip()
+    print(_menu_item(1, _t("scan")))
+    print(_menu_item(2, _t("dashboard")))
+    print(_menu_item(3, _t("view_offers")))
+    print(_menu_item(4, _t("applied")))
+    print(_menu_item(5, _t("interview")))
+    print(_menu_item(6, _t("rejected")))
+    print(_menu_item(7, _t("letters")))
+    print(_menu_item(8, _t("config")))
+    print(_menu_item(9, _t("prompt")))
+    print(_menu_item(10, _t("candidatures")))
+    print(_menu_item('U', _t("update")))
+    print(_menu_item(0, _t("quit")))
+    choice = input(_dim(_t("choice_prompt"))).strip()
     return choice
 
 
@@ -256,14 +257,14 @@ def menu_scan():
         print(f"  {_dim(fallback_msg)}")
         print()
 
-    print(_header("Scan des offres..."))
+    print(_header(_t("scan_title")))
     print(f"  {_dim('Appuyez sur Ctrl+C pour annuler le scan.')}")
     print()
 
     try:
         raw = scan_all(config)
     except KeyboardInterrupt:
-        print(f"\n  {_yellow('Scan annulé. Aucune offre enregistrée.')}")
+        print(f"\n  {_yellow(_t('scan_cancelled'))}")
         return
 
     if not raw:
@@ -273,7 +274,7 @@ def menu_scan():
         sa_ok = bool(api.get("serpapi", {}).get("api_key"))
         if not ft_ok and not sa_ok:
             print()
-            print(f"  {_yellow('⚠️  Aucune API configurée.')}")
+            print(f"  {_yellow(_t('scan_no_api'))}")
             besoin_api = "TOM a besoin d'au moins une source d'offres pour fonctionner."
             print(f"  {_dim(besoin_api)}")
             print()
@@ -294,7 +295,7 @@ def menu_scan():
         elif not sa_ok:
             print(f"  {_dim('💡 SerpApi non configuré. Seule France Travail est utilisée.')}")
         else:
-            print(f"  {_yellow('Aucune offre trouvée.')}")
+            print(f"  {_yellow(_t('offers_empty'))}")
             print(f"  {_dim('Vérifiez vos critères de recherche dans [9] Prompt.')}")
         return
     offers = match_all(raw, config, profile)
@@ -389,32 +390,32 @@ def menu_dashboard():
         entretiens = ct.count("📞 Entretien")
         rejets = ct.count("❌ Refus")
 
-    print(_header("📊 Dashboard — Statistiques"))
+    print(_header(_t("dash_title")))
     labels = get_cat_labels(config)
     print()
     
     # ── Ligne 1 : KPIs principaux ──
     c1, c2, c3, c4 = 30, 22, 22, 14
-    print(f"  {_pad(_bold('📋 Offres actives'), c1)} {_pad(_bold('⭐ Score moyen'), c2)} {_pad(_bold('✍️  Lettres prêtes'), c3)} {_bold('♻️  Doublons filtrés')}")
+    print(f"  {_pad(_bold(_t('dash_kpi_offers')), c1)} {_pad(_bold(_t('dash_kpi_score')), c2)} {_pad(_bold(_t('dash_kpi_letters')), c3)} {_bold(_t('dash_kpi_dupes'))}")
     print(f"  {_pad(_green(str(total)), c1)} {_pad(_cyan(str(avg)+'/10'), c2)} {_pad(_green(str(letters)), c3)} {_dim(str(doublons))}")
     print()
     
     # ── Ligne 2 : Catégories ──
     label_a = labels["A"]
     label_b = labels["B"]
-    print(f"  {_bold('📂 Catégories')}")
+    print(f"  {_bold(_t('dash_categories'))}")
     print(f"  {_pad(_green('Cat A — '+label_a), c1)} {_cyan(str(cat_a)+' offres')}")
     print(f"  {_pad(_yellow('Cat B — '+label_b), c1)} {_yellow(str(cat_b)+' offres')}")
     print()
     
     # ── Ligne 3 : Pipeline ──
-    print(f"  {_bold('📊 Pipeline')}")
+    print(f"  {_bold(_t('dash_pipeline'))}")
     pipe_parts = [
-        _dim(f'{total} offres'),
-        _green(f'{letters} lettres'),
-        _cyan(f'{postulees} postulées'),
-        _yellow(f'{entretiens} entretiens'),
-        _dim(f'{rejets} rejets'),
+        _dim(_t('dash_total_offers', total)),
+        _green(_t('dash_letters', letters)),
+        _cyan(_t('dash_applied', postulees)),
+        _yellow(_t('dash_interviews', entretiens)),
+        _dim(_t('dash_rejected', rejets)),
     ]
     pipe = f"  {'  →  '.join(pipe_parts)}"
     print(pipe)
@@ -423,8 +424,8 @@ def menu_dashboard():
     # ── Top offres ──
     w_score, w_co, w_title, w_cat, w_letter = 10, 28, 34, 6, 5
     if offers[:7]:
-        print(f"  {_bold('🏆 Top offres')}")
-        print(f"  {'Score':<{w_score}}{'Entreprise':<{w_co}}{'Poste':<{w_title}}{'Cat':<{w_cat}}{'Lettre'}")
+        print(f"  {_bold(_t('dash_top'))}")
+        print(f"  {_t('dash_col_score'):<{w_score}}{_t('dash_col_company'):<{w_co}}{_t('dash_col_title'):<{w_title}}{_t('dash_col_cat'):<{w_cat}}{_t('dash_col_letter')}")
         print(f"  {'─'*9}  {'─'*26}  {'─'*32}  {'─'*4}  {'─'*5}")
         for o in offers[:7]:
             if o['score'] >= 8:
@@ -445,9 +446,9 @@ def menu_offers():
     labels = get_cat_labels(config)
     offers = load_offers()
     if not offers:
-        print("  " + _yellow("Aucune offre trouvée. Lancez un scan [1]."))
+        print("  " + _yellow(_t("offres_empty")))
         return
-    print(_header("📋 Offres Trouvées"))
+    print(_header(_t("offres_title")))
     print()
     for i, o in enumerate(offers, 1):
         sc = _green(f"{o['score']}/10") if o['score'] >= 9 else _cyan(f"{o['score']}/10") if o['score'] >= 7 else _dim(f"{o['score']}/10")
