@@ -588,6 +588,11 @@ def menu_config():
         save_config(config)
         label = "🇬🇧 English" if new_lang == "en" else "🇫🇷 Français"
         print(f"  {_green('✅ Langue changée : ' + label)}")
+        # Relance le bot pour appliquer la nouvelle langue partout
+        import subprocess
+        print(f"  {_dim('Redémarrage pour appliquer la nouvelle langue...')}")
+        subprocess.run([sys.executable, str(_BASE / 'bot.py')])
+        sys.exit(0)
     elif choice == 'D':
         _uninstall()
     elif choice == 'M':
