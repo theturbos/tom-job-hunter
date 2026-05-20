@@ -107,12 +107,11 @@ def _download_and_extract():
         shutil.rmtree(tmpdir, ignore_errors=True)
         return False, f"Extraction échouée: {e}"
 
-    src_dir = extracted_dirs[0]  # dossier tom-job-hunter-main dans le zip
     extracted_dirs = [d for d in tmpdir.iterdir() if d.is_dir()]
     if not extracted_dirs:
         shutil.rmtree(tmpdir, ignore_errors=True)
         return False, "Archive vide ou mal formée."
-    src_dir = extracted_dirs[0]
+    src_dir = extracted_dirs[0]  # dossier tom-job-hunter-main dans le zip
 
     # Copie tout SAUF data/ et lettres/
     protected = {"data", "lettres", ".venv", "venv", "__pycache__"}

@@ -141,31 +141,20 @@ if exist "%SHORTCUT%" del /q "%SHORTCUT%" >nul 2>&1
 if exist "%DESKTOP%\TOM Job Hunter.bat" del /q "%DESKTOP%\TOM Job Hunter.bat" >nul 2>&1
 
 REM Crée le raccourci .lnk avec icône via un script PowerShell temporaire
-set "PSSCRIPT=%INSTALL_DIR%\_create_shortcut.ps1"
+set "PSSCRIPT=%INSTALL_DIR%\_shortcut.ps1"
 if exist "%ICON%" (
-    (
-        echo $ShortcutPath = '%SHORTCUT%'
-        echo $TargetPath   = '%LAUNCHER%'
-        echo $WorkDir      = '%INSTALL_DIR%'
-        echo $IconPath     = '%ICON%'
-        echo $WshShell = New-Object -ComObject WScript.Shell
-        echo $Shortcut = $WshShell.CreateShortcut($ShortcutPath^)
-        echo $Shortcut.TargetPath = $TargetPath
-        echo $Shortcut.WorkingDirectory = $WorkDir
-        echo $Shortcut.IconLocation = $IconPath
-        echo $Shortcut.Save(^)
-    ) > "%PSSCRIPT%"
+    echo $ws = New-Object -ComObject WScript.Shell > "%PSSCRIPT%"
+    echo $sc = $ws.CreateShortcut('%SHORTCUT%') >> "%PSSCRIPT%"
+    echo $sc.TargetPath = '%LAUNCHER%' >> "%PSSCRIPT%"
+    echo $sc.WorkingDirectory = '%INSTALL_DIR%' >> "%PSSCRIPT%"
+    echo $sc.IconLocation = '%ICON%' >> "%PSSCRIPT%"
+    echo $sc.Save() >> "%PSSCRIPT%"
 ) else (
-    (
-        echo $ShortcutPath = '%SHORTCUT%'
-        echo $TargetPath   = '%LAUNCHER%'
-        echo $WorkDir      = '%INSTALL_DIR%'
-        echo $WshShell = New-Object -ComObject WScript.Shell
-        echo $Shortcut = $WshShell.CreateShortcut($ShortcutPath^)
-        echo $Shortcut.TargetPath = $TargetPath
-        echo $Shortcut.WorkingDirectory = $WorkDir
-        echo $Shortcut.Save(^)
-    ) > "%PSSCRIPT%"
+    echo $ws = New-Object -ComObject WScript.Shell > "%PSSCRIPT%"
+    echo $sc = $ws.CreateShortcut('%SHORTCUT%') >> "%PSSCRIPT%"
+    echo $sc.TargetPath = '%LAUNCHER%' >> "%PSSCRIPT%"
+    echo $sc.WorkingDirectory = '%INSTALL_DIR%' >> "%PSSCRIPT%"
+    echo $sc.Save() >> "%PSSCRIPT%"
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PSSCRIPT%" 2>nul
 del /q "%PSSCRIPT%" >nul 2>&1

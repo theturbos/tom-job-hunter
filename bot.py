@@ -827,8 +827,20 @@ def _uninstall():
     print(f"  {_red('Suppression en cours...')}")
     import shutil
     base = _BASE
+    desktop = Path.home() / "Desktop"
+    
+    # Supprime les raccourcis bureau
+    for shortcut in ["TOM Job Hunter.lnk", "TOM Job Hunter.bat", "TOM Job Hunter.command"]:
+        sp = desktop / shortcut
+        if sp.exists():
+            sp.unlink(missing_ok=True)
+            print(f"  {_dim('Raccourci bureau supprimé : ' + shortcut)}")
+    
     # Supprime le dossier d'installation
-    shutil.rmtree(base, ignore_errors=True)
+    try:
+        shutil.rmtree(base, ignore_errors=False)
+    except Exception:
+        shutil.rmtree(base, ignore_errors=True)  # Force brute si échec (fichiers verrouillés)
     print(f"  {_green('✅ TOM a été désinstallé.')}")
     print(f"  {_dim('Au revoir !')}")
     sys.exit(0)

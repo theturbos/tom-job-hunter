@@ -163,11 +163,6 @@ TOMCMD
 
     # ── Attribuer l'icône custom au .command (macOS) ──
     if [ -f "$INSTALL_DIR/assets/TOM.icns" ]; then
-        # Écrit l'icône dans le resource fork du fichier
-        # sips peut écrire une icône custom dans le fichier lui-même
-        sips -i "$SHORTCUT" 2>/dev/null || true
-        # DeRez/Rez pour injecter l'icône custom (méthode Apple historique)
-        # Alternative: osascript pour setter l'icône via le Finder
         osascript -e "set iconFile to POSIX file \"$INSTALL_DIR/assets/TOM.icns\"" \
                   -e "set targetFile to POSIX file \"$SHORTCUT\"" \
                   -e "tell application \"Finder\" to set icon of targetFile to iconFile" 2>/dev/null && \
