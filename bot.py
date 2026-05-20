@@ -59,6 +59,12 @@ def _strip_ansi(t):
     """Supprime tous les codes ANSI d'un string."""
     return re.sub(r'\033\[[0-9;]*m', '', t)
 
+def _pad(t, width):
+    """Pad un texte coloré à une largeur fixe (compense les codes ANSI)."""
+    visible = _strip_ansi(t)
+    padding = max(0, width - len(visible))
+    return t + ' ' * padding
+
 def _color(color_code, t):
     """Applique une couleur ANSI ou retourne le texte brut."""
     if _USE_COLORS:
@@ -388,16 +394,17 @@ def menu_dashboard():
     print()
     
     # ── Ligne 1 : KPIs principaux ──
-    print(f"  {_bold('📋 Offres actives'):<30} {_bold('⭐ Score moyen'):<22} {_bold('✍️  Lettres prêtes'):<22} {_bold('♻️  Doublons filtrés')}")
-    print(f"  {_green(str(total)):<30} {_cyan(str(avg)+'/10'):<22} {_green(str(letters)):<22} {_dim(str(doublons))}")
+    c1, c2, c3, c4 = 30, 22, 22, 14
+    print(f"  {_pad(_bold('📋 Offres actives'), c1)} {_pad(_bold('⭐ Score moyen'), c2)} {_pad(_bold('✍️  Lettres prêtes'), c3)} {_bold('♻️  Doublons filtrés')}")
+    print(f"  {_pad(_green(str(total)), c1)} {_pad(_cyan(str(avg)+'/10'), c2)} {_pad(_green(str(letters)), c3)} {_dim(str(doublons))}")
     print()
     
     # ── Ligne 2 : Catégories ──
     label_a = labels["A"]
     label_b = labels["B"]
     print(f"  {_bold('📂 Catégories')}")
-    print(f"  {_green('Cat A — '+label_a):<30} {_cyan(str(cat_a)+' offres')}")
-    print(f"  {_yellow('Cat B — '+label_b):<30} {_yellow(str(cat_b)+' offres')}")
+    print(f"  {_pad(_green('Cat A — '+label_a), c1)} {_cyan(str(cat_a)+' offres')}")
+    print(f"  {_pad(_yellow('Cat B — '+label_b), c1)} {_yellow(str(cat_b)+' offres')}")
     print()
     
     # ── Ligne 3 : Pipeline ──
@@ -414,9 +421,10 @@ def menu_dashboard():
     print()
     
     # ── Top offres ──
+    w_score, w_co, w_title, w_cat, w_letter = 10, 28, 34, 6, 5
     if offers[:7]:
         print(f"  {_bold('🏆 Top offres')}")
-        print(f"  {'Score':<10}{'Entreprise':<28}{'Poste':<34}{'Cat':<6}{'Lettre'}")
+        print(f"  {'Score':<{w_score}}{'Entreprise':<{w_co}}{'Poste':<{w_title}}{'Cat':<{w_cat}}{'Lettre'}")
         print(f"  {'─'*9}  {'─'*26}  {'─'*32}  {'─'*4}  {'─'*5}")
         for o in offers[:7]:
             if o['score'] >= 8:
@@ -429,7 +437,7 @@ def menu_dashboard():
             ti = o["title"][:32]
             ca = _green("A") if o["category"] == "A" else _yellow("B")
             le = _green("✓") if o["has_letter"] else _dim("—")
-            print(f"  {sc:<10}{co:<28}{ti:<34}{ca:<6}{le}")
+            print(f"  {_pad(sc, w_score)}{_pad(co, w_co)}{_pad(ti, w_title)}{_pad(ca, w_cat)}{le}")
     print()
 
 def menu_offers():
