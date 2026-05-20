@@ -451,9 +451,9 @@ def menu_offers():
     labels = get_cat_labels(config)
     offers = load_offers()
     if not offers:
-        print("  " + _yellow(_t("offres_empty")))
+        print("  " + _yellow(_t("offers_empty")))
         return
-    print(_header(_t("offres_title")))
+    print(_header(_t("offers_title")))
     print()
     for i, o in enumerate(offers, 1):
         sc = _green(f"{o['score']}/10") if o['score'] >= 9 else _cyan(f"{o['score']}/10") if o['score'] >= 7 else _dim(f"{o['score']}/10")
