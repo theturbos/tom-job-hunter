@@ -45,22 +45,26 @@ def _stash_and_pull():
         # Sauvegarde les modifs locales
         subprocess.run(
             ["git", "stash", "push", "--include-untracked", "-m", "TOM auto-stash before update"],
-            cwd=str(_BASE), capture_output=True, timeout=15
+            cwd=str(_BASE), capture_output=True, timeout=15,
+            encoding="utf-8", errors="replace"
         )
         # Pull
         result = subprocess.run(
             ["git", "pull", "--ff-only"],
-            cwd=str(_BASE), capture_output=True, text=True, timeout=30
+            cwd=str(_BASE), capture_output=True, text=True, timeout=30,
+            encoding="utf-8", errors="replace"
         )
         if result.returncode != 0:
             # Restaurer le stash
-            subprocess.run(["git", "stash", "pop"], cwd=str(_BASE), capture_output=True, timeout=10)
+            subprocess.run(["git", "stash", "pop"], cwd=str(_BASE), capture_output=True, timeout=10,
+                           encoding="utf-8", errors="replace")
             return False, f"git pull échoué: {result.stderr.strip()[:200]}"
 
         # Restaurer le stash
         pop = subprocess.run(
             ["git", "stash", "pop"],
-            cwd=str(_BASE), capture_output=True, text=True, timeout=10
+            cwd=str(_BASE), capture_output=True, text=True, timeout=10,
+            encoding="utf-8", errors="replace"
         )
         if pop.returncode != 0 and "No stash" not in pop.stderr:
             # Conflit — le stash est toujours là, on prévient
@@ -140,19 +144,22 @@ def check_for_updates():
         # Fetch silencieux
         subprocess.run(
             ["git", "fetch", "origin"],
-            cwd=str(_BASE), capture_output=True, timeout=15
+            cwd=str(_BASE), capture_output=True, timeout=15,
+            encoding="utf-8", errors="replace"
         )
         # Compare
         result = subprocess.run(
             ["git", "rev-list", "--count", "HEAD..origin/main"],
-            cwd=str(_BASE), capture_output=True, text=True, timeout=10
+            cwd=str(_BASE), capture_output=True, text=True, timeout=10,
+            encoding="utf-8", errors="replace"
         )
         behind = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
         if behind > 0:
             # Récupère la version distante
             show = subprocess.run(
                 ["git", "show", "origin/main:bot.py"],
-                cwd=str(_BASE), capture_output=True, text=True, timeout=10
+                cwd=str(_BASE), capture_output=True, text=True, timeout=10,
+                encoding="utf-8", errors="replace"
             )
             import re
             m = re.search(r'VERSION\s*=\s*"([^"]+)"', show.stdout)
