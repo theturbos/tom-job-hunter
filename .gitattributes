@@ -1,0 +1,19 @@
+# Force LF pour les fichiers cross-platform
+*.py text eol=lf
+*.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+
+# Force CRLF pour les fichiers Windows uniquement
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binaires
+*.png binary
+*.ico binary
+*.icns binary
+*.docx binary
