@@ -306,16 +306,20 @@ def match_all(raw_offers, config, profile=None):
     print(f"  📊 {_bold(str(len(raw_offers)))} offres brutes → {_green(str(len(scored)))} gardées ({kept_pct}%)  {_dim('│ seuil ≥ ' + str(min_score))}")
     if score_dist_raw:
         bar_parts = []
+        max_count = max(score_dist_raw.values())
+        bar_width = 15  # largeur max normalisée
         for s in sorted(score_dist_raw.keys(), reverse=True):
             c = score_dist_raw[s]
-            bar = '█' * c
+            # Barre normalisée (proportionnelle)
+            filled = max(1, round(c / max(max_count, 1) * bar_width))
+            bar = '█' * filled
             if s >= min_score:
-                bar_parts.append(f"{_green(str(s)+' ')}{bar}")
+                bar_parts.append(f"{_green(str(s))} {bar} {_dim(str(c))}")
             elif s >= min_score - 2:
-                bar_parts.append(f"{_yellow(str(s)+' ')}{bar}")
+                bar_parts.append(f"{_yellow(str(s))} {bar} {_dim(str(c))}")
             else:
-                bar_parts.append(f"{_dim(str(s)+' ')}{_dim(bar)}")
-        print(f"  {_dim('   Scores:')} {'  '.join(bar_parts)}")
+                bar_parts.append(f"{_dim(str(s))} {_dim(bar)} {_dim(str(c))}")
+        print(f"  {_bold('Scores:')}\n    " + "\n    ".join(bar_parts))
 
     return scored
 

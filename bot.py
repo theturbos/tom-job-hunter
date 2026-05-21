@@ -366,7 +366,7 @@ def menu_scan():
                 dist_parts.append(f"{_yellow(str(s))}:{c}")
             else:
                 dist_parts.append(f"{_dim(str(s)+':'+str(c))}")
-        print(f"  {_dim('   Distribution scores :')} {' '.join(dist_parts)}")
+        print(f"  {_bold('Distribution des scores :')} {'  '.join(dist_parts)}")
     
     # Proposer ajustement si pas assez d'offres
     if total_matched == 0:
