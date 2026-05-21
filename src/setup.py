@@ -26,8 +26,20 @@ def _pick_file(title, filetypes):
     try:
         # Windows: PowerShell
         if sys.platform == "win32":
-            ps = f"Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = '{title}'; $f.Filter = '{filetypes[0][1]}|{filetypes[0][1]}'; $f.ShowDialog(); $f.FileName"
-            r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=30)
+            # Construit le filtre: "Word documents|*.docx"
+            filters = '|'.join(f'{t[0]}|{t[1]}' for t in filetypes)
+            ps = (
+                f"Add-Type -AssemblyName System.Windows.Forms; "
+                f"$f = New-Object System.Windows.Forms.OpenFileDialog; "
+                f"$f.Title = '{title}'; "
+                f"$f.Filter = '{filters}'; "
+                f"$f.ShowDialog(); "
+                f"$f.FileName"
+            )
+            # Le dialog peut s'ouvrir derrière la fenêtre courante
+            hint = "💡 Si rien ne s'ouvre, vérifiez derrière votre fenêtre PowerShell."
+            print(f"  {_dim(hint)}")
+            r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=60)
             path = r.stdout.strip()
             if path and Path(path).exists():
                 return path
