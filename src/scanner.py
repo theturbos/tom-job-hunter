@@ -55,7 +55,7 @@ def _ft_search(config, keywords, departement="75"):
     if not token:
         return []
     prefs = config.get("preferences", {})
-    max_age = prefs.get("max_offer_age_days", 10)
+    max_age = prefs.get("max_offer_age_days", 21)
     params = f"motsCles={urllib.parse.quote(keywords)}&departement={departement}&range=0-149"
     url = f"{_FT_SEARCH_URL}?{params}"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})

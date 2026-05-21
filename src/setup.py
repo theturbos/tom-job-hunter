@@ -453,10 +453,10 @@ def run_wizard(existing_config=None, lang="fr"):
     nl_prompt = _ask(t["prompt_label"], default=prefs.get("natural_language_prompt", ""))
     prefs["natural_language_prompt"] = nl_prompt
 
-    max_age = _ask(t["max_age"], default=str(prefs.get("max_offer_age_days", 10)), hint="Les offres plus anciennes seront ignorées")
-    prefs["max_offer_age_days"] = int(max_age) if max_age.isdigit() else 10
+    max_age = _ask(t["max_age"], default=str(prefs.get("max_offer_age_days", 21)), hint="Les offres plus anciennes seront ignorées")
+    prefs["max_offer_age_days"] = int(max_age) if max_age.isdigit() else 21
     config["preferences"] = prefs
-    config.setdefault("matching", {})["min_score"] = 6  # Défaut, modifiable dans config
+    config.setdefault("matching", {})["min_score"] = 4  # Défaut benchmark: 7/8 profils OK
     print()
 
     # ── 4. APIs ────────────────────────────────────────────────

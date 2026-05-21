@@ -285,7 +285,7 @@ def _score_cv_match(offer_title, offer_desc, cv_data):
 
 def match_all(raw_offers, config, profile=None):
     """Note toutes les offres et retourne celles avec score >= min_score."""
-    min_score = config.get("matching", {}).get("min_score", 6)
+    min_score = config.get("matching", {}).get("min_score", 4)
     cv_data = profile or {}
 
     scored = []
