@@ -746,7 +746,14 @@ def _edit_config_interactive(config):
     elif choice == '14':
         current = llm.get('provider', 'none')
         print(f"  Provider actuel: {_bold(current)}")
-        print(f"  {_dim('1=Ollama (local/gratuit)  2=Mistral (FR/gratuit)  3=OpenAI  4=Aucun')}")
+        print(f"  {_dim('1=Ollama (local/gratuit)')}")
+        print(f"  {_dim('2=Mistral (FR 🇫🇷, tier gratuit)')}")
+        print(f"  {_dim('3=OpenAI (payant, meilleure qualité)')}")
+        print(f"  {_dim('4=DeepSeek (très bon marché, bon français)')}")
+        print(f"  {_dim('5=OpenRouter (Claude, Gemini, GPT...)')}")
+        print(f"  {_dim('6=Groq (ultra-rapide, gratuit limité)')}")
+        print(f"  {_dim('7=Custom (API OpenAI-compatible)')}")
+        print(f"  {_dim('8=Aucun (template seul)')}")
         val = input(f"  Choix [{current}] : ").strip()
         if val == '1': llm['provider'] = 'ollama'; llm['model'] = 'llama3.2'
         elif val == '2':
@@ -757,7 +764,25 @@ def _edit_config_interactive(config):
             llm['provider'] = 'openai'; llm['model'] = 'gpt-5.4-mini'
             ok = input(f"  OpenAI API Key : ").strip()
             if ok: api.setdefault('openai', {})['api_key'] = ok
-        elif val == '4': llm['provider'] = 'none'; llm['model'] = ''
+        elif val == '4':
+            llm['provider'] = 'deepseek'; llm['model'] = 'deepseek-v4-flash'
+            dk = input(f"  DeepSeek API Key : ").strip()
+            if dk: api.setdefault('deepseek', {})['api_key'] = dk
+        elif val == '5':
+            llm['provider'] = 'openrouter'; llm['model'] = 'openai/gpt-5.4-mini'
+            rk = input(f"  OpenRouter API Key : ").strip()
+            if rk: api.setdefault('openrouter', {})['api_key'] = rk
+        elif val == '6':
+            llm['provider'] = 'groq'; llm['model'] = 'llama-3.3-70b-versatile'
+            gk = input(f"  Groq API Key : ").strip()
+            if gk: api.setdefault('groq', {})['api_key'] = gk
+        elif val == '7':
+            llm['provider'] = 'custom'; llm['model'] = 'gpt-5.4-mini'
+            ck = input(f"  Custom API Key : ").strip()
+            if ck: api.setdefault('custom', {})['api_key'] = ck
+            bu = input(f"  Base URL (endpoint /v1) [{llm.get('base_url', '')}] : ").strip()
+            if bu: llm['base_url'] = bu
+        elif val == '8': llm['provider'] = 'none'; llm['model'] = ''
     elif choice == '15':
         val = input(f"  Chemin template .docx [{config.get('_letter_template_path', '')}] : ").strip()
         if val and Path(val).exists():
