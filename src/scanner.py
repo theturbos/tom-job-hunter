@@ -357,9 +357,18 @@ def scan_all(config):
     dept = location.get("department", "75")
 
     # Split Cat A (Tech/IA) et Cat B (Secteur métier)
-    priorities = prefs.get("priorities", ["IA & Stratégie", "Secteur"])
-    cat_a_label = priorities[0] if len(priorities) > 0 else "IA & Stratégie"
-    cat_b_label = priorities[1] if len(priorities) > 1 else "Secteur"
+    priorities = prefs.get("priorities", [])
+    # Nettoie les priorités — garantit 2 valeurs distinctes
+    if not isinstance(priorities, list) or len(priorities) < 2 or priorities[0] == priorities[1]:
+        if isinstance(priorities, list) and len(priorities) >= 1 and priorities[0]:
+            priorities = [priorities[0], "Secteur"]
+        else:
+            priorities = ["IA & Stratégie", "Secteur"]
+    # Unicité forcée
+    if priorities[0] == priorities[1]:
+        priorities[1] = "Secteur"
+    cat_a_label = priorities[0] if priorities[0] else "IA & Stratégie"
+    cat_b_label = priorities[1] if priorities[1] else "Secteur"
 
     queries = prefs.get("search_queries", [
         "AI Strategy", "Head of AI", "AI Product Manager",
@@ -389,6 +398,8 @@ def scan_all(config):
 
     # 1) France Travail — 2 requêtes Cat A + 2 requêtes Cat B
     print(f"  📡 France Travail...  {_dim('Cat A: ' + cat_a_label[:20] + ' / Cat B: ' + cat_b_label[:20])}")
+    if cat_a_label == cat_b_label:
+        print(f"  {_yellow('⚠️  Priorités identiques — modifiez-les dans [8] > [M] > [15]')}")
     ft_results = []
     for q in q_a[:2]:
         ft_results += _ft_search(config, q, dept)

@@ -620,8 +620,11 @@ def menu_config():
     print(f"  {_bold('🔍 RECHERCHE')}")
     print(f"  {_dim('├─')} {_bold('Localisation:')} {loc.get('city', '?')}, {loc.get('country', '?')}  {_dim('(dép. ' + loc.get('department', '?') + ')')}")
     priorities = prefs.get('priorities', [])
-    p1 = priorities[0] if len(priorities) > 0 else '?'
-    p2 = priorities[1] if len(priorities) > 1 else '?'
+    if not isinstance(priorities, list) or len(priorities) < 2:
+        priorities = (priorities if isinstance(priorities, list) else [priorities]) + ['?']
+        priorities = priorities[:2]
+    p1 = priorities[0] if priorities[0] else '?'
+    p2 = priorities[1] if priorities[1] else '?'
     print(f"  {_dim('├─')} {_bold('Priorités:')}    {_cyan(p1)}  {_dim('|')}  {_cyan(p2)}")
     prompt_text = prefs.get('natural_language_prompt', '')
     if not prompt_text:
