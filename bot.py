@@ -21,6 +21,7 @@ from src.cv_parser import parse as parse_cv
 from src.prompt_engine import run as interpret_prompt
 from src.prompt_engine import get_token_usage as get_token_usage
 from src.i18n import t as _t
+from src.voir_lettres import open_letters_folder
 
 VERSION = "2.0"
 CREATOR = "Matthias Dubois"
@@ -31,6 +32,7 @@ CONFIG_PATH = Path("data/config.yaml")
 OFFERS_PATH = Path("data/offres.md")
 DOUBLONS_PATH = Path("data/doublons.md")
 CANDIDATURES_PATH = Path("data/candidatures.md")
+LETTERS_DIR = Path("lettres")
 
 # ── Couleurs : délégué à src.colors (cross-platform, colorama fallback) ─
 from src.colors import green as _green, red as _red, yellow as _yellow
@@ -187,6 +189,7 @@ def menu_main():
     print(_menu_item(8, _t("config")))
     print(_menu_item(9, _t("prompt")))
     print(_menu_item(10, _t("candidatures")))
+    print(_menu_item(11, _t("open_letters")))
     print(_menu_item('U', _t("update")))
     print(_menu_item(0, _t("quit")))
     choice = input(_dim(_t("choice_prompt"))).strip()
@@ -256,11 +259,16 @@ def menu_scan():
         return
     offers = match_all(raw, config, profile)
     for o in offers:
-        o["category"] = categorize(o)
+        o["category"] = categorize(o, config)
     _save_offers(offers)
     _update_doublons(raw, offers)
     print(f"\n  {_green('✅ Scan terminé :')} {_bold(str(len(offers)))} offres pertinentes trouvées.")
     print(f"  {_dim('Tapez [3] pour les voir.')}")
+    print(f"\n  {_yellow('📁 Où sont mes fichiers ?')}")
+    print(f"  {_dim('Offres    →')} {_cyan(str(OFFERS_PATH))}")
+    print(f"  {_dim('Lettres   →')} {_cyan(str(LETTERS_DIR))}")
+    print(f"  {_dim('Config    →')} {_cyan(str(CONFIG_PATH))}")
+    print(f"  {_dim('Stats     →')} {_cyan(str(CANDIDATURES_PATH))}")
     _show_token_usage()
 
 def _save_offers(new_offers):
@@ -413,6 +421,11 @@ def menu_dashboard():
     print()
 
     # ── Top offres (tableau compact) ──
+    def _pad(s, w):
+        """Pad une chaîne à largeur w, en gérant les séquences ANSI."""
+        plain = re.sub(r'\x1b\[[0-9;]*m', '', s)
+        return s + ' ' * max(0, w - len(plain))
+
     if offers[:7]:
         print(f"  {_bold(_t('dash_top'))}")
         W_SC, W_CO, W_TI, W_CA, W_LE = 10, 26, 34, 6, 8
@@ -529,6 +542,12 @@ def menu_lettres():
     print(f"  {_bold(str(len(generated)))} lettre(s) générée(s)")
     _show_token_usage()
 
+def menu_voir_lettres():
+    """Ouvre le dossier des lettres."""
+    config = load_config()
+    open_letters_folder(config, LETTERS_DIR)
+
+
 def menu_config():
     """Affiche et PERMET de modifier chaque paramètre de la config."""
     config = load_config()
@@ -572,6 +591,7 @@ def menu_config():
     print(f"  Provider:  {_bold(prov)}  ({mod})")
     print(f"  Template:  {config.get('_letter_template_path', 'NON')}")
     print(f"  CV:        {config.get('_cv_path', 'NON')}")
+    print(f"  Lettres:   {config.get('_letters_dir', str(LETTERS_DIR))}")
     print()
 
     # Menu de modification
@@ -631,6 +651,7 @@ def _edit_config_interactive(config):
     print(_menu_item(14, "🤖 LLM provider"))
     print(_menu_item(15, "📄 Template lettre .docx"))
     print(_menu_item(16, "📄 CV .docx"))
+    print(_menu_item(17, "📂 Dossier lettres"))
     print(_dim("  [0] Retour"))
 
     choice = input(_dim("  Votre choix : ")).strip()
@@ -726,6 +747,16 @@ def _edit_config_interactive(config):
             print(f"  {_green('✅ CV enregistré.')}")
         elif val:
             print(f"  {_red(f'Fichier introuvable: {val}')}")
+            changed = False
+    elif choice == '17':
+        current = config.get('_letters_dir', str(LETTERS_DIR))
+        val = input(f"  Dossier lettres [{current}] : ").strip()
+        if val:
+            p = Path(val.strip('"').strip("'"))
+            p.mkdir(parents=True, exist_ok=True)
+            config['_letters_dir'] = str(p.resolve())
+            print(f"  {_green('✅ Dossier lettres:')} {_cyan(str(p.resolve()))}")
+        else:
             changed = False
     elif choice == '0':
         changed = False
@@ -933,6 +964,8 @@ def main_loop():
             menu_prompt()
         elif choice == "10":
             menu_candidatures()
+        elif choice == "11":
+            menu_voir_lettres()
         elif choice.upper() == "U":
             from src.updater import run_update
             print()

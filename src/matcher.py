@@ -32,6 +32,9 @@ _DEFAULT_SECTORS = [
     "startup", "tech",
     "luxe", "luxury", "cosmétique", "parfumerie", "mode",
     "lvmh", "hermès", "kering", "l'oréal", "chanel",
+    # Termes finance
+    "fp&a", "fp a", "financial planning", "financial analyst",
+    "controller", "cfo", "treasury", "audit", "comptabilité",
 ]
 
 # ── Mots-clés IA génériques (fallback) ─
@@ -121,11 +124,9 @@ def _get_sectors(config):
     if not config:
         return _DEFAULT_SECTORS
     prefs = config.get("preferences", {})
-    # Extrait les termes de secteur depuis les keywords/priorités
     user_kw = prefs.get("search_queries", []) + prefs.get("keywords", [])
     priorities = prefs.get("priorities", [])
     all_terms = user_kw + [p.lower() for p in priorities]
-    # Secteurs connus à détecter
     known = set(_DEFAULT_SECTORS + [
         "automobile", "auto", "santé", "health", "énergie", "energy",
         "transports", "logistics", "agroalimentaire", "retail",
@@ -136,6 +137,10 @@ def _get_sectors(config):
         "assurance", "banque", "juridique", "legal",
         "marketing", "communication", "rh", "ressources humaines",
         "supply chain", "logistique",
+        # Termes IA/tech qui sont des secteurs en soi
+        "ia", "ai", "intelligence artificielle", "artificial intelligence",
+        "machine learning", "deep learning", "llm", "python",
+        "rag", "nlp", "data", "automatisation", "transformation",
     ])
     sectors = []
     for term in all_terms:
@@ -173,15 +178,25 @@ def _get_ia_keywords(config):
 
 
 def _score_user_keywords(text, config):
-    """Bonus basé sur les keywords/search_queries de l'utilisateur (dynamiques)."""
+    """Bonus basé sur les keywords/search_queries de l'utilisateur (dynamiques).
+    Ignore les noms de villes/départements pour éviter les faux positifs."""
     prefs = config.get("preferences", {}) if config else {}
     user_kw = prefs.get("search_queries", []) + prefs.get("keywords", [])
     if not user_kw:
         return 0
+    # Mots à ignorer (villes, faux positifs courants)
+    ignore = {
+        'paris', 'lyon', 'marseille', 'bordeaux', 'lille', 'toulouse',
+        'nantes', 'nice', 'strasbourg', 'montpellier', 'rennes', 'orléans',
+        'france', 'île-de-france', 'idf', '75', '69', '13', '33', '59',
+    }
     text_lower = text.lower()
     matched = 0
     for kw in user_kw[:10]:
-        if kw.lower() in text_lower:
+        kw_lower = kw.lower().strip()
+        if kw_lower in ignore or len(kw_lower) < 3:
+            continue
+        if kw_lower in text_lower:
             matched += 1
     # Bonus proportionnel : 0 matches=0, 4+=+4 max
     return min(matched, 4)
@@ -190,7 +205,7 @@ def _score_user_keywords(text, config):
 def _score_role(title, desc, config=None):
     """Score basé sur le titre et la description."""
     text = (title + " " + desc).lower()
-    score = 2  # Score de base — toute offre qui arrive ici mérite d'être vue
+    score = 0  # Score de base — 0, seuls les vrais signaux comptent
 
     # Bonus utilisateur (dynamique — issu du prompt)
     if config:
@@ -200,7 +215,15 @@ def _score_role(title, desc, config=None):
     # IA keywords : dynamiques selon le prompt utilisateur
     ia_keywords = _get_ia_keywords(config)
     ia_count = sum(1 for kw in ia_keywords if kw in text)
-    score += min(ia_count, 4)  # max +4
+    score += min(ia_count, 6)  # max +6 (au lieu de +4)
+
+    # Bonus titre : le poste lui-même contient un signal IA fort
+    title_lower = title.lower()
+    title_ia_signals = ['head of ai', 'chief ai', 'ai strategy', 'ai transformation',
+                        'ai product', 'ia ', 'artificial intelligence', 'llm',
+                        'machine learning', 'directeur ia', 'responsable ia']
+    if any(s in title_lower for s in title_ia_signals):
+        score += 2
 
     # Secteur : dynamique selon le prompt utilisateur
     sectors = _get_sectors(config)
@@ -213,6 +236,12 @@ def _score_role(title, desc, config=None):
     elif sector_matched >= 2:
         score += 2
     elif sector_matched == 1:
+        score += 1
+
+    # Bonus data/analytics (pertinent pour Finance+IA)
+    data_signals = ['data-driven', 'data driven', 'analytics', 'power bi', 'tableau',
+                    'sql', 'python', 'big data', 'data science', 'bi ']
+    if any(s in text for s in data_signals):
         score += 1
 
     # International / anglais
