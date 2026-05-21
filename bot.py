@@ -265,7 +265,11 @@ def menu_scan():
 
 def _save_offers(new_offers):
     """Merge les nouvelles offres avec les existantes. Garde les statuts."""
-    import fcntl
+    try:
+        import fcntl
+        _has_fcntl = True
+    except (ImportError, ModuleNotFoundError):
+        _has_fcntl = False
     existing = load_offers()
     existing_map = {o['id']: o for o in existing}
 
@@ -328,10 +332,13 @@ def _save_offers(new_offers):
     OFFERS_PATH.parent.mkdir(parents=True, exist_ok=True)
     # File lock pour éviter corruption si 2 instances simultanées
     try:
-        with open(OFFERS_PATH, "w", encoding="utf-8") as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-            f.write("\n".join(lines))
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        if _has_fcntl:
+            with open(OFFERS_PATH, "w", encoding="utf-8") as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                f.write("\n".join(lines))
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        else:
+            raise ImportError("fcntl not available")
     except (ImportError, ModuleNotFoundError, NameError):
         # Windows ou env sans fcntl — fallback sans lock
         with open(OFFERS_PATH, "w", encoding="utf-8") as f:
