@@ -206,7 +206,7 @@ Réponds UNIQUEMENT par le texte de la lettre. Pas de salutation, pas de markdow
 
 def _build_letter_prompt(offer, config, profile_data):
     """Construit le prompt pour générer une lettre personnalisée."""
-    profile = config.get("profile", {})
+    profile = profile_data if profile_data else config.get("profile", {})
     name = profile.get("name", "Le candidat")
     tone = config.get("letter_tone", "professionnel direct")
 
@@ -442,7 +442,7 @@ def _inject_corps(para, full_text, body_text):
 
 def _generate_template_letter(offer, config, profile_data):
     """Génère une lettre basique sans LLM — mais sans patterns IA."""
-    profile = config.get("profile", {})
+    profile = profile_data if profile_data else config.get("profile", {})
     name = profile.get("name", "Le candidat")
     company = offer.get("company", "")
     title = offer.get("title", "")
