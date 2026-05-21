@@ -23,7 +23,7 @@ from src.prompt_engine import get_token_usage as get_token_usage
 from src.i18n import t as _t
 from src.voir_lettres import open_letters_folder
 
-VERSION = "2.0"
+BOT_NAME = "TOM V2.0"
 CREATOR = "Matthias Dubois"
 CREATOR_LINKEDIN = "https://www.linkedin.com/in/matthias-dubois/"
 CREATOR_GITHUB = "https://github.com/theturbos"
@@ -40,6 +40,27 @@ from src.colors import cyan as _cyan, bold as _bold, dim as _dim, italic as _ita
 from src.colors import bar as _make_bar
 
 BAR = _make_bar()
+
+def _get_version():
+    """Lit la version depuis le tag Git le plus récent, ou le fichier VERSION."""
+    import subprocess
+    try:
+        r = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            capture_output=True, text=True,
+            cwd=str(_BASE), timeout=5
+        )
+        tag = r.stdout.strip()
+        if tag and r.returncode == 0:
+            return tag.lstrip("v")  # v2.3 → 2.3
+    except Exception:
+        pass
+    # Fallback: fichier VERSION
+    ver_file = _BASE / "VERSION"
+    if ver_file.exists():
+        return ver_file.read_text(encoding="utf-8").strip()
+    return "2.0"
+
 
 def _header(title):
     b = BAR
@@ -173,7 +194,8 @@ def show_header():
         name = profile.get("name", "Utilisateur")
         min_score = config.get("matching", {}).get("min_score", 6)
         tone = config.get("letter_tone", "professionnel direct")
-        print(f"  {_bold(name)} {_dim('·')} {_bold(city)} {_dim('· min')} {_bold(str(min_score))} {_dim('· ton')} {_italic(tone)} {_dim('·')} v{VERSION}")
+        ver = _get_version()
+        print(f"  {_bold(name)} {_dim('·')} {_bold(city)} {_dim('· min')} {_bold(str(min_score))} {_dim('· ton')} {_italic(tone)} {_dim('·')} v{ver}")
     print(f"  {_dim(LICENSE)}")
     print(f"  {_dim('🔗')} {_cyan(CREATOR_LINKEDIN)}")
     print(f"  {_dim('🐙')} {_cyan(CREATOR_GITHUB)}")

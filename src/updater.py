@@ -2,6 +2,7 @@
 updater.py — Mise à jour auto de TOM V2.0
 Stratégie : git pull (si repo) ou download zip (fallback)
 Ne touche JAMAIS au dossier data/ ni aux lettres/
+Version : lit le tag Git le plus récent, ou le fichier VERSION.
 """
 from src.colors import green as _green, red as _red, yellow as _yellow
 from src.colors import cyan as _cyan, bold as _bold, dim as _dim
@@ -14,7 +15,6 @@ import tempfile
 import subprocess
 from pathlib import Path
 
-VERSION = "2.0"
 _BASE = Path(__file__).resolve().parent.parent  # dossier tom-job-hunter
 
 
@@ -24,19 +24,24 @@ def _is_git_repo():
 
 
 def _current_version():
-    """Lit la version actuelle depuis VERSION (fichier dédié) ou bot.py."""
-    import re
-    # 1) D'abord le fichier VERSION
+    """Lit la version actuelle : tag Git > fichier VERSION > '?'."""
+    # 1) Tag Git le plus récent
+    try:
+        r = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            capture_output=True, text=True,
+            cwd=str(_BASE), timeout=5
+        )
+        tag = r.stdout.strip()
+        if tag and r.returncode == 0:
+            return tag.lstrip("v")  # v2.3 → 2.3
+    except Exception:
+        pass
+    # 2) Fichier VERSION
     ver_file = _BASE / "VERSION"
     if ver_file.exists():
         return ver_file.read_text(encoding="utf-8").strip()
-    # 2) Fallback : extrait depuis bot.py
-    bot_py = _BASE / "bot.py"
-    if not bot_py.exists():
-        return None
-    text = bot_py.read_text(encoding="utf-8")
-    m = re.search(r'VERSION\s*=\s*"([^"]+)"', text)
-    return m.group(1) if m else None
+    return "?"
 
 
 def _stash_and_pull():
@@ -142,11 +147,11 @@ def check_for_updates():
     try:
         # Fetch silencieux
         subprocess.run(
-            ["git", "fetch", "origin"],
+            ["git", "fetch", "origin", "--tags"],
             cwd=str(_BASE), capture_output=True, timeout=15,
             encoding="utf-8", errors="replace"
         )
-        # Compare
+        # Compare les commits
         result = subprocess.run(
             ["git", "rev-list", "--count", "HEAD..origin/main"],
             cwd=str(_BASE), capture_output=True, text=True, timeout=10,
@@ -154,15 +159,13 @@ def check_for_updates():
         )
         behind = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
         if behind > 0:
-            # Récupère la version distante
-            show = subprocess.run(
-                ["git", "show", "origin/main:bot.py"],
+            # Récupère le tag distant le plus récent
+            tag_result = subprocess.run(
+                ["git", "describe", "--tags", "--abbrev=0", "origin/main"],
                 cwd=str(_BASE), capture_output=True, text=True, timeout=10,
                 encoding="utf-8", errors="replace"
             )
-            import re
-            m = re.search(r'VERSION\s*=\s*"([^"]+)"', show.stdout)
-            remote_version = m.group(1) if m else "?"
+            remote_version = tag_result.stdout.strip().lstrip("v") if tag_result.returncode == 0 else "?"
             return True, remote_version
         return False, None
     except Exception:
