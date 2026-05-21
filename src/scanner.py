@@ -259,14 +259,17 @@ def scan_all(config):
                   "intelligence", "machine learning", "deep learning", "automatisation"]
     q_a = [q for q in queries if any(s in q.lower() for s in ia_signals)]
     q_b = [q for q in queries if q not in q_a]
-    # Fallback si l'un des deux est vide
+    # Fallback intelligent si l'un des deux est vide
+    if not q_a and cat_a_label and cat_a_label != cat_b_label:
+        # Utilise le label Cat A comme query de secours (ex: "IA & Stratégie")
+        q_a = [cat_a_label]
+    if not q_b and cat_b_label and cat_b_label != cat_a_label:
+        q_b = [cat_b_label]
+    # Fallback ultime : duplique
     if not q_a:
-        q_a = queries[:2] if len(queries) >= 2 else queries[:1]
+        q_a = queries[:2] if len(queries) >= 2 else (["AI Strategy"] if not queries else queries[:1])
     if not q_b:
-        q_b = queries[2:4] if len(queries) >= 4 else (queries[1:3] if len(queries) >= 2 else [])
-    # Si toujours vide, duplique cat A (mieux que rien)
-    if not q_b and q_a:
-        q_b = [q_a[-1]] if len(q_a) > 0 else []
+        q_b = queries[2:4] if len(queries) >= 4 else (["Finance"] if len(queries) <= 2 else queries[1:3])
 
     print("\n" + _cyan(" 🔍 Scan des offres... "))
     all_offers = []

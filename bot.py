@@ -184,6 +184,7 @@ def save_candidate_status(offer_id, new_status):
 # ── Header / menu ─────────────────────────────────────────────
 
 def show_header():
+    print()
     print(_header(_t("menu_title")))
     if CONFIG_PATH.exists():
         config = load_config()
@@ -205,12 +206,14 @@ def show_header():
             print(f"  {_red('⚠️  Aucune API configurée — scan impossible. Menu [8]')}")
         if not llm_ok:
             print(f"  {_yellow('💡 Aucun LLM configuré — lettres template uniquement. Menu [8]')}")
+        print()
     print(f"  {_dim(LICENSE)}")
     print(f"  {_dim('🔗')} {_cyan(CREATOR_LINKEDIN)}")
     print(f"  {_dim('🐙')} {_cyan(CREATOR_GITHUB)}")
     print()
 
 def menu_main():
+    print()
     print(_menu_item(1, _t("scan")))
     print(_menu_item(2, _t("dashboard")))
     print(_menu_item(3, _t("view_offers")))
@@ -222,8 +225,10 @@ def menu_main():
     print(_menu_item(9, _t("prompt")))
     print(_menu_item(10, _t("candidatures")))
     print(_menu_item(11, _t("open_letters")))
+    print()
     print(_menu_item('U', _t("update")))
     print(_menu_item(0, _t("quit")))
+    print()
     choice = input(_dim(_t("choice_prompt"))).strip()
     return choice
 
@@ -695,7 +700,7 @@ def _edit_config_interactive(config):
     print(_menu_item(11, "🎨 Ton des lettres"))
     print(_menu_item(12, "🔑 France Travail API"))
     print(_menu_item(13, "🔑 SerpApi key"))
-    print(_menu_item(14, "🤖 LLM provider"))
+    print(_menu_item(14, "🤖 LLM provider (OpenAI, DeepSeek, Claude...)"))
     print(_menu_item(15, "📄 Template lettre .docx"))
     print(_menu_item(16, "📄 CV .docx"))
     print(_menu_item(17, "📂 Dossier lettres"))

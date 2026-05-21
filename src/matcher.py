@@ -120,10 +120,18 @@ def _is_ia_prompt(config):
 
 
 def _get_sectors(config):
-    """Retourne les secteurs à valoriser, issus du prompt ou défaut."""
+    """Retourne les secteurs à valoriser.
+    Priorité : prefs.sectors (explicite) > search_queries + priorities (déduit) > défaut."""
     if not config:
         return _DEFAULT_SECTORS
     prefs = config.get("preferences", {})
+
+    # 1) Secteurs explicites configurés par l'utilisateur
+    explicit = prefs.get("sectors", [])
+    if explicit:
+        return [s.lower().strip() for s in explicit if s.strip()]
+
+    # 2) Déduit depuis search_queries + priorities
     user_kw = prefs.get("search_queries", []) + prefs.get("keywords", [])
     priorities = prefs.get("priorities", [])
     all_terms = user_kw + [p.lower() for p in priorities]
