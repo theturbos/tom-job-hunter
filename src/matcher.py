@@ -289,15 +289,34 @@ def match_all(raw_offers, config, profile=None):
     cv_data = profile or {}
 
     scored = []
+    score_dist_raw = {}
     for offer in raw_offers:
         base_score = _score_role(offer.get("title", ""), offer.get("description", ""), config)
         cv_bonus = _score_cv_match(offer.get("title", ""), offer.get("description", ""), cv_data)
         offer["score"] = min(10, round(base_score + cv_bonus))
-        if offer["score"] >= min_score:
+        s = offer["score"]
+        score_dist_raw[s] = score_dist_raw.get(s, 0) + 1
+        if s >= min_score:
             scored.append(offer)
 
     scored.sort(key=lambda o: o["score"], reverse=True)
-    print(f"  📊 Matching : {len(raw_offers)} offres brutes → {len(scored)} avec score ≥ {min_score}")
+    
+    # Résumé visuel de la distribution
+    kept_pct = round(len(scored) / max(1, len(raw_offers)) * 100)
+    print(f"  📊 {_bold(str(len(raw_offers)))} offres brutes → {_green(str(len(scored)))} gardées ({kept_pct}%)  {_dim('│ seuil ≥ ' + str(min_score))}")
+    if score_dist_raw:
+        bar_parts = []
+        for s in sorted(score_dist_raw.keys(), reverse=True):
+            c = score_dist_raw[s]
+            bar = '█' * c
+            if s >= min_score:
+                bar_parts.append(f"{_green(str(s)+' ')}{bar}")
+            elif s >= min_score - 2:
+                bar_parts.append(f"{_yellow(str(s)+' ')}{bar}")
+            else:
+                bar_parts.append(f"{_dim(str(s)+' ')}{_dim(bar)}")
+        print(f"  {_dim('   Scores:')} {'  '.join(bar_parts)}")
+
     return scored
 
 
