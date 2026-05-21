@@ -457,6 +457,9 @@ def _normalize_title(title):
     import unicodedata
     title = title.lower().strip()
     title = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore').decode('ascii')
+    # Supprime le contenu entre parenthèses AVANT la suppression de ponctuation
+    # Ex: "Consultant(e)" → "Consultant" (pas "consultante")
+    title = re.sub(r'\([^)]*\)', '', title)
     # Supprime les stop words de comparaison
     for word in ['le ', 'la ', 'les ', 'de ', 'du ', 'des ', 'un ', 'une ', 'the ', 'a ', 'an ',
                  'senior ', 'junior ', 'confirmed ', 'confirme ', 'h/f', '(h/f)', 'f/h', '(f/h)']:
