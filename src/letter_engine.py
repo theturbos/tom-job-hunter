@@ -160,11 +160,11 @@ Réponds UNIQUEMENT par le texte de la lettre. Pas de salutation, pas de markdow
         if provider == "mistral":
             base_url = "https://api.mistral.ai/v1"
             key = api_config.get("mistral", {}).get("api_key", "")
-            model = llm_config.get("model", "mistral-small-latest")
+            model = llm_config.get("model", "mistral-small-2506")
         else:
             base_url = "https://api.openai.com/v1"
             key = api_config.get("openai", {}).get("api_key", "")
-            model = llm_config.get("model", "gpt-4o-mini")
+            model = llm_config.get("model", "gpt-5.4-mini")
 
         if not key:
             print(f"  " + _yellow(f" Pas de clé API pour {provider} "))

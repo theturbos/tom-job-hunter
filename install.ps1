@@ -179,6 +179,10 @@ Write-Host "  Pour lancer TOM V2.0 :"                            -ForegroundColo
 Write-Host "     Double-clic sur 'TOM Job Hunter' sur le Bureau"  -ForegroundColor Green
 Write-Host "     OU : cd $InstallDir ; .\.venv\Scripts\activate ; python bot.py" -ForegroundColor Green
 Write-Host ""
+Write-Host "  Vos donnees : $InstallDir\data\"                    -ForegroundColor Yellow
+Write-Host "     -> config.yaml, offres.md, candidatures.md"        -ForegroundColor Gray
+Write-Host "  Vos lettres : $InstallDir\lettres\"                   -ForegroundColor Yellow
+Write-Host ""
 
 if (-not $env:TOM_SILENT) {
     Read-Host "Appuyez sur Entree pour fermer"

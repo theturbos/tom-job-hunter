@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 
 # ── France Travail API (même méthode auth que daily_scanner.py) ──
 
-_FT_TOKEN_URL = "https://entreprise.francetravail.fr/connexion/oauth2/access_token"
+_FT_TOKEN_URL = "https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=%2Fpartenaire"
 _FT_SEARCH_URL = "https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search"
 _SSL_CTX = ssl.create_default_context()
 
@@ -40,7 +40,7 @@ def _ft_get_token(config):
         with urllib.request.urlopen(req, context=_SSL_CTX, timeout=15) as resp:
             return json.loads(resp.read()).get("access_token")
     except Exception as e:
-        print(f"  " + _yellow("France Travail token: {e}"))
+        print("  " + _yellow(f"France Travail token: {e}"))
         return None
 
 
@@ -58,7 +58,7 @@ def _ft_search(config, keywords, departement="75"):
         with urllib.request.urlopen(req, context=_SSL_CTX, timeout=30) as resp:
             data = json.loads(resp.read())
     except Exception as e:
-        print(f"  " + _yellow("France Travail search: {e}"))
+        print("  " + _yellow(f"France Travail search: {e}"))
         return []
 
     cutoff = datetime.now() - timedelta(days=max_age)
@@ -116,7 +116,7 @@ def _serpapi_search(config, query):
         with urllib.request.urlopen(req, context=_SSL_CTX, timeout=30) as resp:
             data = json.loads(resp.read())
     except Exception as e:
-        print(f"  " + _yellow("SerpApi: {e}"))
+        print("  " + _yellow(f"SerpApi: {e}"))
         return []
 
     results = []
