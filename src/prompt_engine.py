@@ -297,8 +297,8 @@ def _regex_fallback(text):
     else:
         remote = "none"
 
-    # ── Min score ──
-    min_score = 6
+    # ── Min score ── (défaut 4 — benchmark: 7/8 profils alimentés)
+    min_score = 4
     score_match = re.search(r'(?:score\s*(?:min|minimum)?\s*(?:de)?\s*(\d+))', text_lower)
     if score_match:
         min_score = int(score_match.group(1))
@@ -308,8 +308,8 @@ def _regex_fallback(text):
     if re.search(r'\b(?:stage|alternance|intern)\b', text_lower):
         min_score = max(1, min_score - 3)
 
-    # ── Max age ──
-    max_age = 10
+    # ── Max age ── (défaut 21j — benchmark: +123% vs 10j)
+    max_age = 21
     age_match = re.search(r'(?:offres? de |)(?:moins de |max(?:imum)? |)(\d+)\s*(?:jour|j)', text_lower)
     if age_match and age_match.group(1):
         max_age = int(age_match.group(1))
