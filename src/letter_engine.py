@@ -467,11 +467,11 @@ Cordialement,
 
     return _clean_ia_patterns(body)
 
-def _save_letter_md(output_path, company, title, body_text):
+def _save_letter_md(output_path, company, title, body_text, location="Paris"):
     """Sauvegarde la lettre en markdown si pas de template."""
     date_str = datetime.now().strftime("%d/%m/%Y")
     content = f"""{title} — {company}
-{date_str}
+{location}, le {date_str}
 
 À l'attention du Responsable du Recrutement
 {company}
@@ -516,6 +516,11 @@ def generate_all(offers, config, profile_data=None, template_path=None):
         company = offer.get("company", "")
         title = offer.get("title", "")
         safe_id = offer.get("id", "").replace("/", "-").replace(" ", "_")[:60]
+        # Nom de fichier lisible : entreprise_titre-slug
+        import unicodedata
+        company_slug = re.sub(r'[^a-zA-Z0-9]+', '-', company.lower()).strip('-')
+        title_slug = re.sub(r'[^a-zA-Z0-9]+', '-', title.lower()).strip('-')[:50]
+        readable_name = f"{company_slug}_{title_slug}" if company_slug and title_slug else safe_id
 
         # Génère le corps (LLM ou template)
         body_text = None
@@ -529,8 +534,8 @@ def generate_all(offers, config, profile_data=None, template_path=None):
         lettres_dir = Path(config.get("_letters_dir", "lettres"))
         lettres_dir.mkdir(parents=True, exist_ok=True)
 
-        docx_path = str(lettres_dir / f"{safe_id}.docx")
-        md_path = str(lettres_dir / f"{safe_id}.md")
+        docx_path = str(lettres_dir / f"{readable_name}.docx")
+        md_path = str(lettres_dir / f"{readable_name}.md")
 
         # Tente .docx d'abord (template custom ou défaut)
         docx_ok = False
@@ -544,7 +549,7 @@ def generate_all(offers, config, profile_data=None, template_path=None):
             print(f"  ✅ Lettre .docx : {company} — {title[:40]}")
         else:
             # Fallback .md
-            _save_letter_md(md_path, company, title, body_text)
+            _save_letter_md(md_path, company, title, body_text, location=config.get('preferences', {}).get('location', {}).get('city', 'Paris'))
             generated.append({"path": md_path, "offer_id": offer.get("id"), "format": "md"})
             print(f"  ✅ Lettre .md  : {company} — {title[:40]}")
 
