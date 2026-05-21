@@ -216,6 +216,69 @@ def show_guide():
         print(f"  {_dim(cmd_msg)}")
     print()
 
+
+# ── Tests API (utilisés pendant l'onboarding) ──────────────
+
+def _test_ft_keys(client_id, client_secret):
+    """Teste les identifiants France Travail. Retourne (ok, message)."""
+    import urllib.request, json, ssl
+    try:
+        body = f"grant_type=client_credentials&client_id={client_id}&client_secret={client_secret}&scope=api_offresdemploiv2%20o2dsoffre"
+        req = urllib.request.Request(
+            "https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=%2Fpartenaire",
+            data=body.encode(),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        with urllib.request.urlopen(req, context=ssl.create_default_context(), timeout=10) as resp:
+            data = json.loads(resp.read())
+            if data.get("access_token"):
+                return True, "Token obtenu — identifiants valides"
+            return False, data.get("error_description", "Erreur inconnue")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="ignore")
+        try:
+            msg = json.loads(body).get("error_description", f"HTTP {e.code}")
+        except:
+            msg = f"HTTP {e.code}"
+        return False, msg[:120]
+    except Exception as e:
+        return False, str(e)[:120]
+
+
+def _test_serpapi_key(api_key):
+    """Teste une clé SerpApi. Retourne (ok, message)."""
+    import urllib.request, json
+    try:
+        url = f"https://serpapi.com/search?engine=google_jobs&q=test&api_key={api_key}"
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read())
+            if data.get("search_metadata", {}).get("status") == "Success":
+                return True, "Clé valide"
+            return False, data.get("error", "Clé invalide")
+    except Exception as e:
+        return False, str(e)[:120]
+
+
+def _test_llm_key(provider, api_key, base_url=None):
+    """Teste une clé LLM (OpenAI-compatible). Retourne (ok, message)."""
+    import urllib.request, json, ssl
+    try:
+        url = (base_url or f"https://api.{provider}.com/v1") + "/models"
+        req = urllib.request.Request(
+            url, headers={"Authorization": f"Bearer {api_key}"}
+        )
+        with urllib.request.urlopen(req, context=ssl.create_default_context(), timeout=10) as resp:
+            if resp.status == 200:
+                return True, f"Clé {provider} valide"
+            return False, f"HTTP {resp.status}"
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            return False, "Clé invalide (HTTP 401)"
+        return False, f"HTTP {e.code}"
+    except Exception as e:
+        return False, str(e)[:120]
+
+
 def run_wizard(existing_config=None, lang="fr"):
     """Lance le wizard interactif."""
     config = existing_config or {}
@@ -414,6 +477,19 @@ def run_wizard(existing_config=None, lang="fr"):
         print(f"  5. Copiez le Client ID et Client Secret\n")
         api["france_travail"]["client_id"] = _ask("Client ID", default=api["france_travail"].get("client_id", ""))
         api["france_travail"]["client_secret"] = _ask("Client Secret", default=api["france_travail"].get("client_secret", ""))
+        # Test les clés France Travail
+        if api["france_travail"]["client_id"] and api["france_travail"]["client_secret"]:
+            print(f"  {_dim('Test France Travail...')}", end=" ", flush=True)
+            ok, msg = _test_ft_keys(api["france_travail"]["client_id"], api["france_travail"]["client_secret"])
+            if ok:
+                print(f"{_green('✅ ' + msg)}")
+            else:
+                print(f"{_red('❌ ' + msg)}")
+                print(f"  {_dim('Vérifiez vos identifiants sur emploi-store.fr')}")
+                retry = _ask("Réessayer ?", default="y", choices=["y", "n"])
+                if retry.lower() == "y":
+                    api["france_travail"]["client_id"] = _ask("Client ID", default="")
+                    api["france_travail"]["client_secret"] = _ask("Client Secret", default="")
     print()
 
     # SerpApi
@@ -427,6 +503,17 @@ def run_wizard(existing_config=None, lang="fr"):
         print(f"  2. Créez un compte gratuit")
         print(f"  3. Copiez votre API key depuis le dashboard\n")
         api["serpapi"]["api_key"] = _ask("API Key", default=api["serpapi"].get("api_key", ""))
+        # Test la clé SerpApi
+        if api["serpapi"]["api_key"]:
+            print(f"  {_dim('Test SerpApi...')}", end=" ", flush=True)
+            ok, msg = _test_serpapi_key(api["serpapi"]["api_key"])
+            if ok:
+                print(f"{_green('✅ ' + msg)}")
+            else:
+                print(f"{_red('❌ ' + msg)}")
+                retry = _ask("Réessayer ?", default="y", choices=["y", "n"])
+                if retry.lower() == "y":
+                    api["serpapi"]["api_key"] = _ask("API Key", default="")
     config["api"] = api
     print()
 
@@ -550,6 +637,26 @@ def run_wizard(existing_config=None, lang="fr"):
 
     config["llm"] = llm
     config["api"] = api
+
+    # Résumé tests API + LLM
+    api_ok = 0
+    if api.get("france_travail", {}).get("client_id"):
+        print(f"  {_green('✅ France Travail configuré')}")
+        api_ok += 1
+    else:
+        print(f"  {_yellow('⚠️  France Travail non configuré — scan impossible')}")
+    if api.get("serpapi", {}).get("api_key"):
+        print(f"  {_green('✅ SerpApi configuré')}")
+        api_ok += 1
+    else:
+        print(f"  {_dim('💡 SerpApi non configuré — scan limité')}")
+    if llm.get("provider", "none") != "none":
+        print(f"  {_green('✅ LLM configuré: ' + llm.get('provider', '') + ' (' + llm.get('model', '?') + ')')}")
+    else:
+        print(f"  {_yellow('⚠️  Aucun LLM — lettres avec template uniquement')}")
+    if api_ok == 0:
+        print(f"\n  {_red('⚠️  Aucune API configurée !')}")
+        print(f"  {_dim('Vous pourrez en configurer une depuis le menu [8] Configuration.')}")
     print()
 
     # ── 6. CV (upload passif) ──────────────────────────────────

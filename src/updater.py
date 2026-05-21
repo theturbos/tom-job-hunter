@@ -165,7 +165,7 @@ def check_for_updates():
                 cwd=str(_BASE), capture_output=True, text=True, timeout=10,
                 encoding="utf-8", errors="replace"
             )
-            remote_version = tag_result.stdout.strip().lstrip("v") if tag_result.returncode == 0 else "?"
+            remote_version = tag_result.stdout.strip().lstrip("v") if tag_result.returncode == 0 and tag_result.stdout.strip() else None
             return True, remote_version
         return False, None
     except Exception:

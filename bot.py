@@ -196,6 +196,15 @@ def show_header():
         tone = config.get("letter_tone", "professionnel direct")
         ver = _get_version()
         print(f"  {_bold(name)} {_dim('·')} {_bold(city)} {_dim('· min')} {_bold(str(min_score))} {_dim('· ton')} {_italic(tone)} {_dim('·')} v{ver}")
+        # Alertes config
+        api = config.get("api", {})
+        ft_ok = bool(api.get("france_travail", {}).get("client_id"))
+        sa_ok = bool(api.get("serpapi", {}).get("api_key"))
+        llm_ok = config.get("llm", {}).get("provider", "none") != "none"
+        if not ft_ok:
+            print(f"  {_red('⚠️  Aucune API configurée — scan impossible. Menu [8]')}")
+        if not llm_ok:
+            print(f"  {_yellow('💡 Aucun LLM configuré — lettres template uniquement. Menu [8]')}")
     print(f"  {_dim(LICENSE)}")
     print(f"  {_dim('🔗')} {_cyan(CREATOR_LINKEDIN)}")
     print(f"  {_dim('🐙')} {_cyan(CREATOR_GITHUB)}")
@@ -289,10 +298,14 @@ def menu_scan():
     print(f"  {_dim('Tapez [3] pour les voir.')}")
     actual_letters = Path(config.get("_letters_dir", LETTERS_DIR))
     print(f"\n  {_yellow('📁 Où sont mes fichiers ?')}")
-    print(f"  {_dim('Offres    →')} {_cyan(str(OFFERS_PATH))}")
-    print(f"  {_dim('Lettres   →')} {_cyan(str(actual_letters))}")
-    print(f"  {_dim('Config    →')} {_cyan(str(CONFIG_PATH))}")
-    print(f"  {_dim('Stats     →')} {_cyan(str(CANDIDATURES_PATH))}")
+    offres_uri = OFFERS_PATH.resolve().as_uri()
+    lettres_uri = actual_letters.resolve().as_uri()
+    config_uri = CONFIG_PATH.resolve().as_uri()
+    stats_uri = CANDIDATURES_PATH.resolve().as_uri()
+    print(f"  {_dim('Offres    →')} {_cyan(offres_uri)}")
+    print(f"  {_dim('Lettres   →')} {_cyan(lettres_uri)}")
+    print(f"  {_dim('Config    →')} {_cyan(config_uri)}")
+    print(f"  {_dim('Stats     →')} {_cyan(stats_uri)}")
     _show_token_usage()
 
 def _save_offers(new_offers):
@@ -598,6 +611,14 @@ def menu_config():
     print(f"  {_bold('RECHERCHE')}")
     print(f"  Ville:        {_bold(loc.get('city', '?'))}, {loc.get('country', '?')}")
     print(f"  Département:  {loc.get('department', '?')}")
+    priorities = prefs.get('priorities', [])
+    if priorities:
+        print(f"  Priorités:    {_cyan(priorities[0])}  |  {_cyan(priorities[1]) if len(priorities) > 1 else ''}")
+    prompt_text = prefs.get('natural_language_prompt', prefs.get('search_queries', ['?']))
+    if isinstance(prompt_text, list):
+        prompt_text = ', '.join(prompt_text[:3])
+    print(f"  Prompt:       {_italic(str(prompt_text)[:60])}")
+    print(f"  Secteurs:     {_dim(', '.join(prefs.get('sectors', prefs.get('search_queries', ['Aucun']))[:5]))}")
     print(f"  Min score:    {matching.get('min_score', 6)}/10")
     print(f"  Max âge:      {prefs.get('max_offer_age_days', 10)} jours")
     tone = config.get('letter_tone', 'professionnel direct')
@@ -678,6 +699,7 @@ def _edit_config_interactive(config):
     print(_menu_item(15, "📄 Template lettre .docx"))
     print(_menu_item(16, "📄 CV .docx"))
     print(_menu_item(17, "📂 Dossier lettres"))
+    print(_menu_item(18, "🏭 Secteurs cibles"))
     print(_dim("  [0] Retour"))
 
     choice = input(_dim("  Votre choix : ")).strip()
@@ -784,21 +806,36 @@ def _edit_config_interactive(config):
             if bu: llm['base_url'] = bu
         elif val == '8': llm['provider'] = 'none'; llm['model'] = ''
     elif choice == '15':
-        val = input(f"  Chemin template .docx [{config.get('_letter_template_path', '')}] : ").strip()
-        if val and Path(val).exists():
-            config['_letter_template_path'] = str(Path(val).resolve())
-            print(f"  {_green('✅ Template enregistré.')}")
-        elif val:
-            print(f"  {_red(f'Fichier introuvable: {val}')}")
-            changed = False
+        print(f"  {_dim('Ouverture du sélecteur de fichier...')}")
+        from src.setup import _pick_file
+        picked = _pick_file("Sélectionnez votre template .docx", [("Word documents", "*.docx")])
+        if picked:
+            config['_letter_template_path'] = str(Path(picked).resolve())
+            print(f"  {_green('✅ Template enregistré:')} {_cyan(str(Path(picked).resolve()))}")
+        else:
+            # Fallback: saisie manuelle
+            val = input(f"  Ou collez le chemin [{config.get('_letter_template_path', '')}] : ").strip()
+            if val and Path(val).exists():
+                config['_letter_template_path'] = str(Path(val).resolve())
+                print(f"  {_green('✅ Template enregistré.')}")
+            elif val:
+                print(f"  {_red(f'Fichier introuvable: {val}')}")
+                changed = False
     elif choice == '16':
-        val = input(f"  Chemin CV .docx [{config.get('_cv_path', '')}] : ").strip()
-        if val and Path(val).exists():
-            config['_cv_path'] = str(Path(val).resolve())
-            print(f"  {_green('✅ CV enregistré.')}")
-        elif val:
-            print(f"  {_red(f'Fichier introuvable: {val}')}")
-            changed = False
+        print(f"  {_dim('Ouverture du sélecteur de fichier...')}")
+        from src.setup import _pick_file
+        picked = _pick_file("Sélectionnez votre CV .docx", [("Word documents", "*.docx")])
+        if picked:
+            config['_cv_path'] = str(Path(picked).resolve())
+            print(f"  {_green('✅ CV enregistré:')} {_cyan(str(Path(picked).resolve()))}")
+        else:
+            val = input(f"  Ou collez le chemin [{config.get('_cv_path', '')}] : ").strip()
+            if val and Path(val).exists():
+                config['_cv_path'] = str(Path(val).resolve())
+                print(f"  {_green('✅ CV enregistré.')}")
+            elif val:
+                print(f"  {_red(f'Fichier introuvable: {val}')}")
+                changed = False
     elif choice == '17':
         current = config.get('_letters_dir', str(LETTERS_DIR))
         val = input(f"  Dossier lettres [{current}] : ").strip()
@@ -807,6 +844,18 @@ def _edit_config_interactive(config):
             p.mkdir(parents=True, exist_ok=True)
             config['_letters_dir'] = str(p.resolve())
             print(f"  {_green('✅ Dossier lettres:')} {_cyan(str(p.resolve()))}")
+        else:
+            changed = False
+    elif choice == '18':
+        current = prefs.get('sectors', prefs.get('search_queries', []))
+        if not isinstance(current, list):
+            current = [str(current)]
+        print(f"  Secteurs actuels : {_cyan(', '.join(current[:8]))}")
+        print(f"  {_dim('Ex: finance, saas, luxe, santé, automobile, conseil...')}")
+        val = input(f"  Nouveaux secteurs (virgules) : ").strip()
+        if val:
+            prefs['sectors'] = [s.strip() for s in val.split(',') if s.strip()]
+            print(f"  {_green('✅ Secteurs mis à jour:')} {_cyan(', '.join(prefs['sectors'][:8]))}")
         else:
             changed = False
     elif choice == '0':
@@ -945,8 +994,9 @@ def _check_update_on_start():
     try:
         from src.updater import check_for_updates
         update_avail, remote_ver = check_for_updates()
-        if update_avail and remote_ver:
-            print(f"\n  {_yellow('🔔 Mise à jour disponible :')} {_cyan('v' + remote_ver)}")
+        if update_avail:
+            ver_str = f"v{remote_ver}" if remote_ver else ""
+            print(f"\n  {_yellow('🔔 Mise à jour disponible')} {_cyan(ver_str)}")
             print(f"  {_dim('Lancez')} {_cyan('python bot.py update')} {_dim('pour mettre à jour (vos données sont protégées).')}")
             print()
     except Exception as e:
