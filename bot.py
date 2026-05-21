@@ -336,6 +336,60 @@ def menu_scan():
     offers = match_all(raw, config, profile)
     for o in offers:
         o["category"] = categorize(o, config)
+    
+    # ── Scoring feedback ──
+    total_raw = len(raw)
+    total_matched = len(offers)
+    min_score = config.get("matching", {}).get("min_score", 4)
+    max_age = config.get("preferences", {}).get("max_offer_age_days", 21)
+    
+    # Distribution des scores bruts
+    score_dist = {}
+    for o in raw:
+        s = o.get("score", 0)
+        score_dist[s] = score_dist.get(s, 0) + 1
+    
+    print()
+    print(f"  {_cyan('📊 Analyse du scan :')}")
+    print(f"  {_dim('├─ Offres brutes récupérées :')} {_bold(str(total_raw))}")
+    print(f"  {_dim('├─ Score minimum :')} {_bold(str(min_score))}/10  {_dim('├─ Âge max :')} {_bold(str(max_age))}j")
+    print(f"  {_dim('└─ Offres gardées :')} {_green(str(total_matched))}")
+    
+    # Distribution des scores
+    if score_dist:
+        dist_parts = []
+        for s in sorted(score_dist.keys(), reverse=True):
+            c = score_dist[s]
+            if s >= min_score:
+                dist_parts.append(f"{_green(str(s))}:{c}")
+            elif s >= min_score - 2:
+                dist_parts.append(f"{_yellow(str(s))}:{c}")
+            else:
+                dist_parts.append(f"{_dim(str(s)+':'+str(c))}")
+        print(f"  {_dim('   Distribution scores :')} {' '.join(dist_parts)}")
+    
+    # Proposer ajustement si pas assez d'offres
+    if total_matched == 0:
+        print(f"\n  {_yellow('⚠️  0 offre gardée avec score ≥ ' + str(min_score) + '.')}")
+        print(f"  {_dim('   Essayez de baisser le score minimum.')}")
+        if any(s >= max(1, min_score - 2) for s in score_dist):
+            nearby = sum(c for s, c in score_dist.items() if s >= max(1, min_score - 2))
+            print(f"  {_cyan('   ➜ Score ≥ ' + str(max(1, min_score - 2)) + ' → ' + str(nearby) + ' offre(s)')}")
+        if any(s >= max(1, min_score - 3) for s in score_dist):
+            nearby = sum(c for s, c in score_dist.items() if s >= max(1, min_score - 3))
+            print(f"  {_cyan('   ➜ Score ≥ ' + str(max(1, min_score - 3)) + ' → ' + str(nearby) + ' offre(s)')}")
+        print(f"  {_dim('   [9] Prompt ou [8] Config → Score minimum pour ajuster.')}")
+    elif total_matched <= 2:
+        msg_peu = f"💡 Peu d'offres ({total_matched}) — score min = {min_score}."
+        print(f"\n  {_yellow(msg_peu)}")
+        # Suggère le seuil qui donnerait 5+ offres
+        for test_score in range(max(1, min_score - 1), 0, -1):
+            would_get = sum(c for s, c in score_dist.items() if s >= test_score)
+            if would_get >= 5:
+                print(f"  {_cyan('   ➜ Score ≥ ' + str(test_score) + ' → ' + str(would_get) + ' offres')}")
+                print(f"  {_dim('   Tapez [8] → [M] → [9] pour ajuster.')}")
+                break
+
     _save_offers(offers)
     _update_doublons(raw, offers)
     print(f"\n  {_green('✅ Scan terminé :')} {_bold(str(len(offers)))} offres pertinentes trouvées.")
@@ -838,11 +892,29 @@ def _edit_config_interactive(config):
         val = input(f"  Département [{loc.get('department', '')}] : ").strip()
         if val: loc['department'] = val; prefs['location'] = loc
     elif choice == '9':
-        val = input(f"  Score min (1-10) [{matching.get('min_score', 6)}] : ").strip()
-        if val and val.isdigit(): matching['min_score'] = int(val)
+        current = matching.get('min_score', 4)
+        print(f"  {_dim('🔍 Le score minimum filtre les offres par pertinence.')}")
+        hint1 = "   ≥ 7 = très exigeant (top 10-15%)    ≥ 4 = standard (recommandé)"
+        hint2 = "   ≥ 5 = exigeant (top 20-25%)        ≥ 3 = ouvert (plus d'offres)"
+        print(f"  {_dim(hint1)}")
+        print(f"  {_dim(hint2)}")
+        val = input(f"  Score min (1-10) [{current}] : ").strip()
+        if val and val.isdigit():
+            new_score = int(val)
+            matching['min_score'] = max(1, min(10, new_score))
+            print(f"  {_green('✅ Score minimum : ' + str(matching['min_score']) + '/10')}")
     elif choice == '10':
-        val = input(f"  Âge max (jours) [{prefs.get('max_offer_age_days', 10)}] : ").strip()
-        if val and val.isdigit(): prefs['max_offer_age_days'] = int(val)
+        current = prefs.get('max_offer_age_days', 21)
+        print(f"  {_dim('📅 Les offres plus anciennes que ce seuil sont ignorées.')}")
+        hint1 = "   5-7j = très frais (peu d'offres)    21j = standard (recommandé)"
+        hint2 = "   10-14j = intermédiaire               30j = large (plus d'offres)"
+        print(f"  {_dim(hint1)}")
+        print(f"  {_dim(hint2)}")
+        val = input(f"  Âge max (jours) [{current}] : ").strip()
+        if val and val.isdigit():
+            new_age = int(val)
+            prefs['max_offer_age_days'] = max(1, min(90, new_age))
+            print(f"  {_green('✅ Âge max : ' + str(prefs['max_offer_age_days']) + ' jours')}")
     elif choice == '11':
         current_tone = config.get('letter_tone', 'professionnel direct')
         print(f"  Ton actuel: {_italic(current_tone)}")
