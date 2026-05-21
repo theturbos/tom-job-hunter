@@ -937,7 +937,7 @@ def _edit_config_interactive(config):
     print(_menu_item(13, "🔑 SerpApi key"))
     print(_menu_item(14, "🤖 LLM provider (OpenAI, DeepSeek, Claude...)"))
     print(_menu_item(15, "🎯 Catégories de recherche"))  
-    print(_menu_item(16, "📄 Template lettre .docx"))
+    print(_menu_item(16, "📄 Lettre de motivation .docx"))
     print(_menu_item(17, "📄 CV .docx"))
     print(_menu_item(18, "📂 Dossier lettres"))
     print(_dim("  [0] Retour"))
