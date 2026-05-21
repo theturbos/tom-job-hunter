@@ -127,6 +127,32 @@ def save_config(config):
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
 
 
+def get_profile_with_cv(config):
+    """Retourne le profil enrichi avec les données parsées du CV.
+    Le CV .docx est parsé via cv_parser, et les compétences/skills
+    sont fusionnés dans le profil pour le scoring et les lettres."""
+    profile = dict(config.get("profile", {}))
+    cv_path = config.get("_cv_path", "")
+    if cv_path and Path(cv_path).exists():
+        try:
+            cv_data = parse_cv(cv_path)
+            if cv_data:
+                # Fusionne les skills du CV avec ceux du profil
+                cv_skills = cv_data.get("skills", [])
+                existing_skills = set(profile.get("skills", []))
+                for s in cv_skills:
+                    existing_skills.add(s)
+                profile["skills"] = sorted(existing_skills)
+                # Ajoute les autres champs du CV si absents du profil
+                for key in ("name", "email", "linkedin", "phone", "languages", "education"):
+                    if key not in profile or not profile[key]:
+                        if cv_data.get(key):
+                            profile[key] = cv_data[key]
+        except Exception:
+            pass  # CV illisible → on garde le profil tel quel
+    return profile
+
+
 # ── Offres ────────────────────────────────────────────────────
 
 def load_offers():
@@ -227,7 +253,7 @@ def show_header():
     print(_header(_t("menu_title")))
     if CONFIG_PATH.exists():
         config = load_config()
-        profile = config.get("profile", {})
+        profile = get_profile_with_cv(config)
         prefs = config.get("preferences", {})
         loc = prefs.get("location", {})
         city = loc.get("city", "Paris")
@@ -276,7 +302,7 @@ def menu_main():
 
 def menu_scan():
     config = load_config()
-    profile = config.get("profile", {})
+    profile = get_profile_with_cv(config)
 
     # Warning Ollama avant scan
     llm = config.get("llm", {})
@@ -767,7 +793,7 @@ def menu_rejet():
 
 def menu_lettres():
     config = load_config()
-    profile = config.get("profile", {})
+    profile = get_profile_with_cv(config)
     offers = load_offers()
     no_letter = [o for o in offers if not o["has_letter"] and o["score"] >= 7]
     if not no_letter:
@@ -798,7 +824,7 @@ def menu_config():
     print(_header("⚙️  Configuration"))
     print()
 
-    profile = config.get("profile", {})
+    profile = get_profile_with_cv(config)
     prefs = config.get("preferences", {})
     loc = prefs.get("location", {})
     matching = config.get("matching", {})
@@ -918,7 +944,7 @@ def _edit_config_interactive(config):
     print(_dim("  [0] Retour"))
 
     choice = input(_dim("  Votre choix : ")).strip()
-    profile = config.get("profile", {})
+    profile = get_profile_with_cv(config)
     prefs = config.get("preferences", {})
     loc = prefs.get("location", {})
     matching = config.get("matching", {})
@@ -1075,6 +1101,19 @@ def _edit_config_interactive(config):
         if picked:
             config['_letter_template_path'] = str(Path(picked).resolve())
             print(f"  {_green('✅ Template enregistré:')} {_cyan(str(Path(picked).resolve()))}")
+            changed = True
+            # Proposer de regénérer les lettres avec le nouveau template
+            regen = input(f"  {_dim('Regénérer les lettres existantes avec ce template ? [y/n]')} : ").strip().lower()
+            if regen in ('y', 'yes', 'oui'):
+                print(f"  {_yellow('♻️  Régénération en cours...')}")
+                profile = get_profile_with_cv(config)
+                offers = load_offers()
+                existing = [o for o in offers if o.get('has_letter')]
+                if existing:
+                    generated = generate_all(existing, config, profile, on_progress=None)
+                    print(f"  {_green('✅ ' + str(len(generated)) + ' lettre(s) regénérée(s)')}")
+                else:
+                    print(f"  {_dim('Aucune lettre à regénérer.')}")
         else:
             val = input(f"  Ou collez le chemin [{config.get('_letter_template_path', '')}] : ").strip()
             if val and Path(val).exists():
@@ -1093,6 +1132,19 @@ def _edit_config_interactive(config):
         if picked:
             config['_cv_path'] = str(Path(picked).resolve())
             print(f"  {_green('✅ CV enregistré:')} {_cyan(str(Path(picked).resolve()))}")
+            changed = True
+            # Proposer de regénérer les lettres avec le nouveau CV
+            regen = input(f"  {_dim('Regénérer les lettres avec ce nouveau CV ? [y/n]')} : ").strip().lower()
+            if regen in ('y', 'yes', 'oui'):
+                print(f"  {_yellow('♻️  Régénération en cours...')}")
+                profile = get_profile_with_cv(config)
+                offers = load_offers()
+                existing = [o for o in offers if o.get('has_letter')]
+                if existing:
+                    generated = generate_all(existing, config, profile, on_progress=None)
+                    print(f"  {_green('✅ ' + str(len(generated)) + ' lettre(s) regénérée(s)')}")
+                else:
+                    print(f"  {_dim('Aucune lettre à regénérer.')}")
         else:
             val = input(f"  Ou collez le chemin [{config.get('_cv_path', '')}] : ").strip()
             if val and Path(val).exists():
