@@ -242,28 +242,55 @@ def scan_all(config):
     prefs = config.get("preferences", {})
     location = prefs.get("location", {})
     dept = location.get("department", "75")
+
+    # Split Cat A (Tech/IA) et Cat B (Secteur métier)
+    priorities = prefs.get("priorities", ["IA & Stratégie", "Secteur"])
+    cat_a_label = priorities[0] if len(priorities) > 0 else "IA & Stratégie"
+    cat_b_label = priorities[1] if len(priorities) > 1 else "Secteur"
+
     queries = prefs.get("search_queries", [
         "AI Strategy", "Head of AI", "AI Product Manager",
         "AI Transformation", "FP&A AI", "Finance Transformation"
     ])
 
+    # Construit les queries Cat A (IA/tech) et Cat B (secteur métier)
+    # Cat A = queries contenant des signaux IA
+    ia_signals = ["ai", "ia", "llm", "data", "tech", "ml ", "python", "nlp", "rag",
+                  "intelligence", "machine learning", "deep learning", "automatisation"]
+    q_a = [q for q in queries if any(s in q.lower() for s in ia_signals)]
+    q_b = [q for q in queries if q not in q_a]
+    # Fallback si l'un des deux est vide
+    if not q_a:
+        q_a = queries[:2] if len(queries) >= 2 else queries[:1]
+    if not q_b:
+        q_b = queries[2:4] if len(queries) >= 4 else (queries[1:3] if len(queries) >= 2 else [])
+    # Si toujours vide, duplique cat A (mieux que rien)
+    if not q_b and q_a:
+        q_b = [q_a[-1]] if len(q_a) > 0 else []
+
     print("\n" + _cyan(" 🔍 Scan des offres... "))
     all_offers = []
 
-    # 1) France Travail
-    print("  📡 France Travail...", end=" ", flush=True)
+    # 1) France Travail — 2 requêtes Cat A + 2 requêtes Cat B
+    print(f"  📡 France Travail...  {_dim('Cat A: ' + cat_a_label[:20] + ' / Cat B: ' + cat_b_label[:20])}")
     ft_results = []
-    for q in queries[:4]:
+    for q in q_a[:2]:
+        ft_results += _ft_search(config, q, dept)
+        time.sleep(0.5)
+    for q in q_b[:2]:
         ft_results += _ft_search(config, q, dept)
         time.sleep(0.5)
     print(f"  {_green(str(len(ft_results)) + ' offres')}")
     all_offers += ft_results
 
-    # 2) SerpApi Google Jobs
+    # 2) SerpApi Google Jobs — 1 requête Cat A + 1 requête Cat B
     print("  📡 SerpApi (Google Jobs)...", end=" ", flush=True)
     sa_results = []
-    for q in queries[:2]:
-        sa_results += _serpapi_search(config, q)
+    if q_a:
+        sa_results += _serpapi_search(config, q_a[0])
+        time.sleep(1)
+    if q_b:
+        sa_results += _serpapi_search(config, q_b[0])
         time.sleep(1)
     print(f"  {_green(str(len(sa_results)) + ' offres')}")
     all_offers += sa_results
