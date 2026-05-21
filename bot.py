@@ -398,30 +398,54 @@ def menu_scan():
     high_score = [o for o in offers if o.get('score', 0) >= 7]
     if high_score:
         llm_provider = config.get("llm", {}).get("provider", "none")
-        if llm_provider != "none":
-            total = len(high_score)
-            print(f"\n  {_yellow('✉️  Génération automatique des lettres...')}")
-            print(f"  {_dim(str(total) + ' offre(s) avec score ≥ 7')}")
-            
-            # Barre de progression simple
-            bar_width = 30
-            last_bar = ""
-            def progress(i, total_n, label):
-                nonlocal last_bar
-                pct = i / max(total_n, 1)
-                filled = int(pct * bar_width)
-                bar = '█' * filled + '░' * (bar_width - filled)
-                line = f"\r  {_cyan('[' + bar + ']')} {_bold(str(i) + '/' + str(total_n))}  {_dim(label[:50])}"
-                # Print sans newline (overwrite)
-                print(line, end='', flush=True)
-                last_bar = bar
-            
-            letters = generate_all(high_score, config, profile, on_progress=progress)
-            print()  # newline après la barre
-            if letters:
-                print(f"  {_green('✅ ' + str(len(letters)) + ' lettre(s) générée(s)')}")
+        lettres_dir = Path(config.get("_letters_dir", LETTERS_DIR))
+        
+        # Filtrer les offres qui ont déjà une lettre
+        existing_letters = set()
+        if lettres_dir.exists():
+            for f in lettres_dir.iterdir():
+                if f.suffix in ('.docx', '.md'):
+                    existing_letters.add(f.stem)
+        
+        need_letter = []
+        already_has = 0
+        for o in high_score:
+            company = o.get('company', '')
+            title = o.get('title', '')
+            company_slug = re.sub(r'[^a-zA-Z0-9]+', '-', company.lower()).strip('-')
+            title_slug = re.sub(r'[^a-zA-Z0-9]+', '-', title.lower()).strip('-')[:50]
+            name = f"{company_slug}_{title_slug}"
+            if name in existing_letters:
+                already_has += 1
             else:
-                print(f"  {_yellow('⚠️  Aucune lettre générée — vérifiez le LLM')}")
+                need_letter.append(o)
+        
+        if already_has > 0:
+            print(f"\n  {_dim('📝 ' + str(already_has) + ' lettre(s) déjà générée(s) — ignorées')}")
+        
+        if llm_provider != "none":
+            total = len(need_letter)
+            if total == 0:
+                print(f"  {_green('✅ Toutes les lettres score ≥ 7 sont déjà générées.')}")
+            else:
+                print(f"\n  {_yellow('✉️  Génération automatique des lettres...')}")
+                print(f"  {_dim(str(total) + ' nouvelle(s) offre(s) avec score ≥ 7')}")
+                
+                # Barre de progression simple
+                bar_width = 30
+                def progress(i, total_n, label):
+                    pct = i / max(total_n, 1)
+                    filled = int(pct * bar_width)
+                    bar = '█' * filled + '░' * (bar_width - filled)
+                    line = f"\r  {_cyan('[' + bar + ']')} {_bold(str(i) + '/' + str(total_n))}  {_dim(label[:50])}"
+                    print(line, end='', flush=True)
+                
+                letters = generate_all(need_letter, config, profile, on_progress=progress)
+                print()  # newline après la barre
+                if letters:
+                    print(f"  {_green('✅ ' + str(len(letters)) + ' lettre(s) générée(s)')}")
+                else:
+                    print(f"  {_yellow('⚠️  Aucune lettre générée — vérifiez le LLM')}")
         else:
             print(f"\n  {_yellow('💡 ' + str(len(high_score)) + ' offre(s) score ≥ 7.')}")
             print(f"  {_dim('Aucun LLM configuré — lettres template uniquement.')}")
@@ -603,9 +627,18 @@ def menu_dashboard():
     labels = get_cat_labels(config)
     print()
 
-    # ── KPIs principaux (sans padding forcé, naturel + tabulation) ──
-    kpi_labels = f"  {_bold(_t('dash_kpi_offers'))}    {_bold(_t('dash_kpi_score'))}    {_bold(_t('dash_kpi_letters'))}    {_bold(_t('dash_kpi_dupes'))}"
-    kpi_values = f"  {_green(str(total))}              {_cyan(str(avg)+'/10')}           {_green(str(letters))}              {_dim(str(doublons))}"
+    # ── KPIs principaux (colonnes alignées) ──
+    col_w = 22  # largeur par colonne
+    h1 = _bold(_t('dash_kpi_offers').ljust(col_w))
+    h2 = _bold(_t('dash_kpi_score').ljust(col_w))
+    h3 = _bold(_t('dash_kpi_letters').ljust(col_w))
+    h4 = _bold(_t('dash_kpi_dupes'))
+    kpi_labels = f"  {h1}{h2}{h3}{h4}"
+    v1 = _green(str(total).ljust(col_w))
+    v2 = _cyan(str(avg)+'/10'.ljust(col_w))
+    v3 = _green(str(letters).ljust(col_w))
+    v4 = _dim(str(doublons))
+    kpi_values = f"  {v1}{v2}{v3}{v4}"
     print(kpi_labels)
     print(kpi_values)
     print()

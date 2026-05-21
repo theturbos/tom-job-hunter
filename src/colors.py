@@ -76,10 +76,17 @@ def yellow(text: str) -> str:
 
 
 def cyan(text: str) -> str:
-    """Cyan adaptatif : bleu foncé sur fond clair, cyan sur fond sombre."""
+    """Cyan adaptatif : bleu clair sur fond clair, cyan sur fond sombre."""
     if _LIGHT_BG:
-        return _color("34", text)  # blue (visible on white)
+        return _color("94", text)  # bright blue (visible on white, nicer than 34)
     return _color("36", text)
+
+
+def link(text: str) -> str:
+    """Couleur pour les liens/clics : bleu souligné."""
+    if _LIGHT_BG:
+        return _color("94;4", text)  # bright blue + underline
+    return _color("36;4", text)  # cyan + underline
 
 
 def bold(text: str) -> str:
