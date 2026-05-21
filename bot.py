@@ -857,7 +857,7 @@ def menu_config():
     # Menu de modification
     print(f"  {_dim('─── Actions ──────────────────────')}")
     current_lang = config.get("_lang", "fr")
-    lang_label = "🇫🇷 Français" if current_lang == "fr" else "🇬🇧 English"
+    lang_label = "Français" if current_lang == "fr" else "English"
     print(f"  {_green('[L]')}  Langue : {lang_label}")
     print(f"  {_green('[M]')}  Modifier un paramètre")
     print(f"  {_green('[S]')}  Relancer le setup wizard")
@@ -871,7 +871,7 @@ def menu_config():
         new_lang = "en" if current_lang == "fr" else "fr"
         config["_lang"] = new_lang
         save_config(config)
-        label = "🇬🇧 English" if new_lang == "en" else "🇫🇷 Français"
+        label = "English" if new_lang == "en" else "Français"
         print(f"  {_green('✅ Langue changée : ' + label)}")
         # Relance le bot pour appliquer la nouvelle langue partout
         import subprocess
@@ -1066,7 +1066,10 @@ def _edit_config_interactive(config):
         else:
             changed = False
     elif choice == '16':
-        print(f"  {_dim('Ouverture du sélecteur de fichier...')}")
+        hint1 = "💡 Une fenêtre de sélection va s'ouvrir (peut apparaître derrière PowerShell)."
+        print(f"  {_dim(hint1)}")
+        hint2 = "Si rien ne s'ouvre, collez le chemin du fichier."
+        print(f"  {_dim(hint2)}")
         from src.setup import _pick_file
         picked = _pick_file("Sélectionnez votre template .docx", [("Word documents", "*.docx")])
         if picked:
@@ -1081,7 +1084,10 @@ def _edit_config_interactive(config):
                 print(f"  {_red(f'Fichier introuvable: {val}')}")
                 changed = False
     elif choice == '17':
-        print(f"  {_dim('Ouverture du sélecteur de fichier...')}")
+        hint1 = "💡 Une fenêtre de sélection va s'ouvrir (peut apparaître derrière PowerShell)."
+        print(f"  {_dim(hint1)}")
+        hint2 = "Si rien ne s'ouvre, collez le chemin vers votre CV."
+        print(f"  {_dim(hint2)}")
         from src.setup import _pick_file
         picked = _pick_file("Sélectionnez votre CV .docx", [("Word documents", "*.docx")])
         if picked:
