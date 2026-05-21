@@ -144,19 +144,58 @@ def load_offers():
         r'📅 DATE PUBLIÉE\s*:\s*([^\n]+)\n'
         r'🔗 URL\s*:\s*([^\n]+)\n'
         r'⭐ SCORE MATCH\s*:\s*(\d+).*?\n'
+        r'📝 DESCRIPTION\s*:\s*([^\n]*)\n'
         r'🚦 STATUT\s*:\s*([^\n]+)',
     )
-    for m in pattern.finditer(text):
-        id_, cat_raw, company, title, loc, date, url, score, status = m.groups()
+    # Pattern v2 (avec description)
+    pattern_v2 = re.compile(
+        r'🆔 ID OFFRE\s*:\s*([^\n]+)\n'
+        r'📌 CATÉGORIE\s*:\s*([^\n]+)\n'
+        r'🏢 ENTREPRISE\s*:\s*([^\n]+)\n'
+        r'💼 TITRE POSTE\s*:\s*([^\n]+)\n'
+        r'📍 LOCALISATION\s*:\s*([^\n]+)\n'
+        r'📅 DATE PUBLIÉE\s*:\s*([^\n]+)\n'
+        r'🔗 URL\s*:\s*([^\n]+)\n'
+        r'⭐ SCORE MATCH\s*:\s*(\d+).*?\n'
+        r'📝 DESCRIPTION\s*:\s*([^\n]*)\n'
+        r'🚦 STATUT\s*:\s*([^\n]+)',
+    )
+    # Pattern v1 (sans description — backward compat)
+    pattern_v1 = re.compile(
+        r'🆔 ID OFFRE\s*:\s*([^\n]+)\n'
+        r'📌 CATÉGORIE\s*:\s*([^\n]+)\n'
+        r'🏢 ENTREPRISE\s*:\s*([^\n]+)\n'
+        r'💼 TITRE POSTE\s*:\s*([^\n]+)\n'
+        r'📍 LOCALISATION\s*:\s*([^\n]+)\n'
+        r'📅 DATE PUBLIÉE\s*:\s*([^\n]+)\n'
+        r'🔗 URL\s*:\s*([^\n]+)\n'
+        r'⭐ SCORE MATCH\s*:\s*(\d+).*?\n'
+        r'🚦 STATUT\s*:\s*([^\n]+)',
+    )
+    for m in pattern_v2.finditer(text):
+        id_, cat_raw, company, title, loc, date, url, score, desc, status = m.groups()
         has_letter = '✅' in status
-        # Extrait la catégorie: 'A — Tech & IA' → 'A', 'B — Secteur' → 'B'
         cat = 'A' if cat_raw.strip().startswith('A') else 'B'
         offers.append({
             'id': id_.strip(), 'company': company.strip(), 'title': title.strip(),
             'location': loc.strip(), 'date': date.strip(), 'url': url.strip(),
             'score': int(score.strip()), 'status': status.strip(),
-            'has_letter': has_letter, 'category': cat
+            'has_letter': has_letter, 'category': cat,
+            'description': (desc or '').strip()
         })
+    # Fallback v1 si aucune offre trouvée en v2
+    if not offers:
+        for m in pattern_v1.finditer(text):
+            id_, cat_raw, company, title, loc, date, url, score, status = m.groups()
+            has_letter = '✅' in status
+            cat = 'A' if cat_raw.strip().startswith('A') else 'B'
+            offers.append({
+                'id': id_.strip(), 'company': company.strip(), 'title': title.strip(),
+                'location': loc.strip(), 'date': date.strip(), 'url': url.strip(),
+                'score': int(score.strip()), 'status': status.strip(),
+                'has_letter': has_letter, 'category': cat,
+                'description': ''
+            })
     offers.sort(key=lambda x: x['score'], reverse=True)
     return offers
 
@@ -315,12 +354,14 @@ def menu_scan():
     _show_token_usage()
 
 def _save_offers(new_offers):
-    """Merge les nouvelles offres avec les existantes. Garde les statuts."""
+    """Merge les nouvelles offres avec les existantes. Garde les statuts.
+    Déduplication inter-sessions : vérifie similarité titre même après merge."""
     try:
         import fcntl
         _has_fcntl = True
     except (ImportError, ModuleNotFoundError):
         _has_fcntl = False
+    from src.scanner import _normalize_title, _similarity
     existing = load_offers()
     existing_map = {o['id']: o for o in existing}
 
@@ -339,6 +380,42 @@ def _save_offers(new_offers):
         merged_map[oid] = o
 
     all_offers = sorted(merged_map.values(), key=lambda x: x.get('score', 0), reverse=True)
+
+    # Passe anti-doublons inter-sessions : détecte titres quasi-identiques même entreprise
+    # Seuil 80% (inter-sessions = plus permissif que le 85% intra-scan)
+    deduped = []
+    seen_companies = {}  # {company: [(title, desc)]}
+    dupes_removed = 0
+    for o in all_offers:
+        company = o.get('company', '').lower().strip()
+        title = o.get('title', '')
+        desc = (o.get('description', '') or '')[:200]
+        if company and company in seen_companies:
+            is_dupe = False
+            for existing_title, existing_desc in seen_companies[company]:
+                title_sim = _similarity(_normalize_title(title), _normalize_title(existing_title))
+                if title_sim >= 0.80:
+                    is_dupe = True
+                    break
+                # Même si titre < 80%, vérifie description similaire (repost même offre)
+                if title_sim >= 0.60 and desc and existing_desc:
+                    desc_sim = _similarity(
+                        _normalize_title(desc),
+                        _normalize_title(existing_desc)
+                    )
+                    if desc_sim >= 0.70:
+                        is_dupe = True
+                        break
+            if is_dupe:
+                dupes_removed += 1
+                continue
+        if company not in seen_companies:
+            seen_companies[company] = []
+        seen_companies[company].append((title, desc))
+        deduped.append(o)
+    if dupes_removed:
+        print(f"  {_dim(f'♻️  {dupes_removed} doublons inter-sessions filtrés')}")
+    all_offers = deduped
 
     # Nettoyage : archiver les offres de plus de 45 jours sans statut actif
     cutoff_date = datetime.now() - timedelta(days=45)
@@ -379,6 +456,7 @@ def _save_offers(new_offers):
             f"📅 DATE PUBLIÉE : {o.get('date', 'N/A')}",
             f"🔗 URL : {o.get('url', '#')}",
             f"⭐ SCORE MATCH : {o.get('score', 0)}/10",
+            f"📝 DESCRIPTION : {o.get('description', '')[:300]}",
             f"🚦 STATUT : {status_line}",
             "",
         ]

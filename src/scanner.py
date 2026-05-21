@@ -38,9 +38,14 @@ def _ft_get_token(config):
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         with urllib.request.urlopen(req, context=_SSL_CTX, timeout=15) as resp:
-            return json.loads(resp.read()).get("access_token")
-    except Exception as e:
-        print("  " + _yellow(f"France Travail token: {e}"))
+            raw_data = resp.read()
+            if not raw_data:
+                return None
+            token = json.loads(raw_data).get("access_token")
+            return token
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="ignore")
+        print("  " + _yellow(f"France Travail auth: HTTP {e.code} — {body[:120]}"))
         return None
 
 
@@ -56,9 +61,17 @@ def _ft_search(config, keywords, departement="75"):
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
         with urllib.request.urlopen(req, context=_SSL_CTX, timeout=30) as resp:
-            data = json.loads(resp.read())
-    except Exception as e:
-        print("  " + _yellow(f"France Travail search: {e}"))
+            raw_data = resp.read()
+            if not raw_data:
+                print("  " + _yellow(f"France Travail: réponse vide pour '{keywords}'"))
+                return []
+            data = json.loads(raw_data)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="ignore")
+        print("  " + _yellow(f"France Travail: HTTP {e.code} pour '{keywords}' — {body[:100]}"))
+        return []
+    except json.JSONDecodeError as e:
+        print("  " + _yellow(f"France Travail: JSON invalide pour '{keywords}' — {str(e)[:80]}"))
         return []
 
     cutoff = datetime.now() - timedelta(days=max_age)
