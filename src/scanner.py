@@ -150,22 +150,78 @@ def _serpapi_search(config, query):
 
 # ── Web fallback : APIs ATS publiques ─────────────────────────
 
-# Entreprises françaises avec API ATS publique (Lever / Greenhouse / TeamTailor)
-# Ces APIs sont gratuites et ne nécessitent pas d'auth.
-_CAREERS_ATS = [
-    # Format: (company, ats_type, ats_id)
-    ("Mistral AI",      "lever",       "mistral"),
-    ("Hugging Face",    "greenhouse",  "huggingface"),
-    ("Alan",            "lever",       "alan"),
-    ("Qonto",           "lever",       "qonto"),
-    ("Pennylane",       "lever",       "pennylane"),
-    ("Payfit",          "lever",       "payfit"),
-    ("Eleven Labs",     "greenhouse",  "elevenlabs"),
-    ("Poolside",        "lever",       "poolside"),
+# Mapping étendu : entreprise → (ats_type, ats_id, secteurs associés)
+# Les secteurs servent à filtrer dynamiquement selon la config utilisateur.
+_CAREERS_ATS_EXTENDED = [
+    # Format: (company, ats_type, ats_id, [sector_keywords])
+    # IA / Tech
+    ("Mistral AI",      "lever",       "mistral",     ["ia", "ai", "tech", "saas"]),
+    ("Hugging Face",    "greenhouse",  "huggingface", ["ia", "ai", "tech", "opensource"]),
+    ("Poolside",        "lever",       "poolside",    ["ia", "ai", "tech", "saas"]),
+    ("PhotoRoom",       "lever",       "photoroom",   ["ia", "ai", "tech", "saas"]),
+    ("Dust",            "lever",       "dust",        ["ia", "ai", "tech", "saas"]),
+    # Finance / Fintech
+    ("Alan",            "lever",       "alan",        ["finance", "fintech", "assurance", "santé"]),
+    ("Qonto",           "lever",       "qonto",       ["finance", "fintech", "banque", "saas"]),
+    ("Pennylane",       "lever",       "pennylane",   ["finance", "fintech", "comptabilité", "saas"]),
+    ("Payfit",          "lever",       "payfit",      ["finance", "fintech", "rh", "saas"]),
+    ("Swile",           "lever",       "swile",       ["finance", "fintech", "rh", "saas"]),
+    ("Spendesk",        "lever",       "spendesk",    ["finance", "fintech", "saas"]),
+    # SaaS / Scale-ups
+    ("Doctolib",        "lever",       "doctolib",    ["santé", "health", "saas", "tech"]),
+    ("Back Market",     "lever",       "backmarket",  ["saas", "tech", "ecommerce"]),
+    ("Mirakl",          "lever",       "mirakl",      ["saas", "tech", "marketplace"]),
+    ("Contentsquare",   "lever",       "contentsquare", ["saas", "tech", "analytics"]),
+    ("Aircall",         "lever",       "aircall",     ["saas", "tech", "télécom"]),
+    # Conseil / Services
+    ("Dataiku",         "lever",       "dataiku",     ["data", "ia", "ai", "conseil", "saas"]),
+    ("Shift Technology","lever",       "shifttechnology", ["ia", "ai", "assurance", "conseil"]),
 ]
 
 _ATS_GREENHOUSE_BASE = "https://boards-api.greenhouse.io/v1/boards"
 _ATS_LEVER_BASE = "https://api.lever.co/v0/postings"
+
+
+def _get_ats_targets(config):
+    """Sélectionne les entreprises ATS pertinentes selon les secteurs configurés.
+    
+    Logique:
+    1. Si l'utilisateur a configuré des secteurs → priorise les entreprises qui matchent
+    2. Sinon, retourne les 8 premières (IA + Finance par défaut)
+    3. Toujours inclure Mistral AI, Hugging Face, Alan, Qonto (piliers FR)
+    """
+    prefs = config.get("preferences", {})
+    sectors = prefs.get("sectors", [])
+    if not sectors:
+        # Déduit des search_queries
+        sq = prefs.get("search_queries", [])
+        sectors_text = ' '.join(sq).lower()
+        sectors = [w for w in sectors_text.replace(',', ' ').split() if len(w) > 2][:4]
+    
+    if not sectors:
+        # Défaut : IA + Finance
+        return [(c, t, i) for c, t, i, _ in _CAREERS_ATS_EXTENDED[:8]]
+    
+    sectors_low = [s.lower().strip() for s in sectors]
+    
+    # Score chaque entreprise par nombre de secteurs matchés
+    scored = []
+    for company, ats_type, ats_id, keywords in _CAREERS_ATS_EXTENDED:
+        score = 0
+        for kw in keywords:
+            for sector in sectors_low:
+                if sector in kw or kw in sector:
+                    score += 2
+                elif any(s in kw for s in sector.split()) or any(k in sector for k in kw.split()):
+                    score += 1
+        # Bonus pour les piliers FR (toujours inclus avec un petit boost)
+        if company in ("Mistral AI", "Hugging Face", "Alan", "Qonto"):
+            score += 5
+        scored.append((company, ats_type, ats_id, score))
+    
+    # Trie par score décroissant, prend les 8 meilleurs
+    scored.sort(key=lambda x: x[3], reverse=True)
+    return [(c, t, i) for c, t, i, _ in scored[:8]]
 
 
 def _web_search_careers(config):
@@ -178,7 +234,8 @@ def _web_search_careers(config):
     urls_seen = set()
     location_filter = config.get("preferences", {}).get("location", {}).get("city", "Paris")
     
-    for company, ats_type, ats_id in _CAREERS_ATS[:6]:  # Limite à 6 entreprises
+    targets = _get_ats_targets(config)
+    for company, ats_type, ats_id in targets:
         try:
             if ats_type == "lever":
                 url = f"{_ATS_LEVER_BASE}/{ats_id}?mode=json"
@@ -360,14 +417,126 @@ def scan_all(config):
     print(f"  {_green(str(len(web_results)) + ' offres')}")
     all_offers += web_results
 
-    # Déduplication
-    seen = set()
-    unique = []
-    for o in all_offers:
-        oid = o.get("id", "")
-        if oid not in seen:
-            seen.add(oid)
-            unique.append(o)
+    # Déduplication intelligente
+    unique = _dedup_offers(all_offers, config)
 
     print(f"\n  ✅ Total brut: {len(all_offers)} → Unique: {len(unique)}")
+    return unique
+
+
+# ── Déduplication intelligente ─────────────────────────────────
+
+def _normalize_title(title):
+    """Normalise un titre pour comparaison."""
+    import unicodedata
+    title = title.lower().strip()
+    title = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore').decode('ascii')
+    # Supprime les stop words de comparaison
+    for word in ['le ', 'la ', 'les ', 'de ', 'du ', 'des ', 'un ', 'une ', 'the ', 'a ', 'an ',
+                 'senior ', 'junior ', 'confirmed ', 'confirme ', 'h/f', '(h/f)', 'f/h', '(f/h)']:
+        title = title.replace(word, '')
+    # Supprime ponctuation et espaces multiples
+    title = re.sub(r'[^\w\s]', '', title)
+    title = re.sub(r'\s+', ' ', title).strip()
+    return title
+
+
+def _similarity(a, b):
+    """Similarité de Jaccard sur les mots, entre 0 et 1."""
+    words_a = set(a.split())
+    words_b = set(b.split())
+    if not words_a or not words_b:
+        return 0.0
+    intersection = words_a.intersection(words_b)
+    union = words_a.union(words_b)
+    return len(intersection) / len(union) if union else 0.0
+
+
+def _is_duplicate_title(title, existing_titles, threshold=0.85):
+    """Vérifie si un titre est un doublon d'un titre existant (similarité > threshold)."""
+    norm = _normalize_title(title)
+    for existing_title in existing_titles:
+        existing_norm = _normalize_title(existing_title)
+        # Identique → doublon immédiat
+        if norm == existing_norm:
+            return True
+        # Similarité floue
+        if _similarity(norm, existing_norm) >= threshold:
+            return True
+    return False
+
+
+def _dedup_offers(offers, config):
+    """Déduplication multi-niveaux : ID hash + URL canonique + similarité titre.
+    
+    Règles strictes (dans l'ordre) :
+    1. Même ID hash → doublon immédiat
+    2. Même URL → doublon immédiat
+    3. Même entreprise + titre similaire >85% → doublon (sauf si >45 jours)
+    4. Titre très similaire >90% sans entreprise → doublon suspect (conservé mais loggé)
+    """
+    import hashlib
+    seen_ids = set()
+    seen_urls = set()
+    seen_titles_by_company = {}  # {company: {title: date}}
+    unique = []
+    doublons = []
+
+    # Construit le hash d'URL pour comparaison
+    def _url_key(url):
+        return hashlib.md5(url.encode()).hexdigest()[:16] if url else ""
+
+    for o in sorted(offers, key=lambda x: x.get('date', ''), reverse=True):
+        oid = o.get('id', '')
+        url = o.get('url', '')
+        company = o.get('company', '').lower().strip()
+        title = o.get('title', '')
+        date_str = o.get('date', '')
+
+        # Règle 1 : Même ID hash
+        if oid and oid in seen_ids:
+            doublons.append(o)
+            continue
+
+        # Règle 2 : Même URL canonique
+        url_key = _url_key(url)
+        if url_key and url_key in seen_urls:
+            doublons.append(o)
+            continue
+
+        # Règle 3 : Même entreprise + titre similaire >85%
+        if company and company in seen_titles_by_company:
+            existing_titles = seen_titles_by_company[company]
+            if _is_duplicate_title(title, list(existing_titles.keys()), 0.85):
+                # Vérifie le délai de grâce (45 jours)
+                is_new = True
+                for existing_title, existing_date in existing_titles.items():
+                    if _similarity(_normalize_title(title), _normalize_title(existing_title)) >= 0.85:
+                        try:
+                            d1 = datetime.strptime(date_str[:10], '%Y-%m-%d')
+                            d2 = datetime.strptime(existing_date[:10], '%Y-%m-%d')
+                            if abs((d1 - d2).days) < 45:
+                                is_new = False
+                                break
+                        except (ValueError, TypeError):
+                            is_new = False
+                            break
+                if not is_new:
+                    doublons.append(o)
+                    continue
+
+        # Accepté
+        if oid:
+            seen_ids.add(oid)
+        if url_key:
+            seen_urls.add(url_key)
+        if company:
+            if company not in seen_titles_by_company:
+                seen_titles_by_company[company] = {}
+            seen_titles_by_company[company][title] = date_str
+        unique.append(o)
+
+    if doublons:
+        print(f"  {_dim(f'♻️  {len(doublons)} doublons filtrés (IDS + URLs + similarité titre)')}")
+
     return unique
