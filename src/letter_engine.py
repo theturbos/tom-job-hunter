@@ -156,20 +156,23 @@ Réponds UNIQUEMENT par le texte de la lettre. Pas de salutation, pas de markdow
             print(f"  " + _yellow(f" Ollama error: {e} "))
             return None
 
-    elif provider in ("openai", "mistral"):
-        if provider == "mistral":
-            base_url = "https://api.mistral.ai/v1"
-            key = api_config.get("mistral", {}).get("api_key", "")
-            model = llm_config.get("model", "mistral-small-2506")
-        else:
-            base_url = "https://api.openai.com/v1"
-            key = api_config.get("openai", {}).get("api_key", "")
-            model = llm_config.get("model", "gpt-5.4-mini")
+    # Providers OpenAI-compatibles (mistral, openai, deepseek, openrouter, groq, custom)
+    PROVIDERS = {
+        "openai":       ("openai",      "gpt-5.4-mini",       "https://api.openai.com/v1"),
+        "mistral":      ("mistral",     "mistral-small-2506", "https://api.mistral.ai/v1"),
+        "deepseek":     ("deepseek",    "deepseek-v4-flash",   "https://api.deepseek.com/v1"),
+        "openrouter":   ("openrouter",  "openai/gpt-5.4-mini",  "https://openrouter.ai/api/v1"),
+        "groq":         ("groq",        "llama-3.3-70b-versatile", "https://api.groq.com/openai/v1"),
+        "custom":       ("custom",      "gpt-5.4-mini",         llm_config.get("base_url", "")),
+    }
 
-        if not key:
+    if provider in PROVIDERS:
+        key_name, default_model, base_url = PROVIDERS[provider]
+        key = api_config.get(key_name, {}).get("api_key", "")
+        model = llm_config.get("model", default_model)
+        if not key or not base_url:
             print(f"  " + _yellow(f" Pas de clé API pour {provider} "))
             return None
-
         try:
             data = json.dumps({
                 "model": model,
