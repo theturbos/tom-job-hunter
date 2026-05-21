@@ -18,7 +18,7 @@ curl -sSL https://raw.githubusercontent.com/theturbos/tom-job-hunter/main/instal
 
 ### Windows (PowerShell)
 ```powershell
-iwr -useb https://raw.githubusercontent.com/theturbos/tom-job-hunter/main/install.bat -outfile "$env:TEMP\tom-install.bat"; cmd /c "%TEMP%\tom-install.bat"
+iwr -useb https://raw.githubusercontent.com/theturbos/tom-job-hunter/main/install.ps1 | iex
 ```
 
 **L'installateur / The installer :**
