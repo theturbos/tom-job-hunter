@@ -661,12 +661,12 @@ def menu_config():
     current_lang = config.get("_lang", "fr")
     lang_label = "🇫🇷 Français" if current_lang == "fr" else "🇬🇧 English"
     print(f"  {_green('[L]')}  Langue : {lang_label}")
-    print(f"  {_red('[D]')}  Désinstaller TOM")
     print(f"  {_green('[M]')}  Modifier un paramètre")
     print(f"  {_green('[S]')}  Relancer le setup wizard")
     print(f"  {_green('[?]')}  Aide / Guide débutant")
     print(f"  {_green('[U]')}  Mettre à jour TOM")
     print(f"  {_dim('[Entrée]')}  Retour")
+    print(f"  {_red('[D]')}  Désinstaller TOM")
     choice = input(_dim("  Votre choix : ")).strip().upper()
 
     if choice == 'L':
@@ -712,10 +712,11 @@ def _edit_config_interactive(config):
     print(_menu_item(12, "🔑 France Travail API"))
     print(_menu_item(13, "🔑 SerpApi key"))
     print(_menu_item(14, "🤖 LLM provider (OpenAI, DeepSeek, Claude...)"))
-    print(_menu_item(15, "📄 Template lettre .docx"))
-    print(_menu_item(16, "📄 CV .docx"))
-    print(_menu_item(17, "📂 Dossier lettres"))
-    print(_menu_item(18, "🏭 Secteurs cibles"))
+    print(_menu_item(15, "🎯 Priorités de recherche"))  
+    print(_menu_item(16, "📄 Template lettre .docx"))
+    print(_menu_item(17, "📄 CV .docx"))
+    print(_menu_item(18, "📂 Dossier lettres"))
+    print(_menu_item(19, "🏭 Secteurs cibles"))
     print(_dim("  [0] Retour"))
 
     choice = input(_dim("  Votre choix : ")).strip()
@@ -822,6 +823,24 @@ def _edit_config_interactive(config):
             if bu: llm['base_url'] = bu
         elif val == '8': llm['provider'] = 'none'; llm['model'] = ''
     elif choice == '15':
+        current = prefs.get('priorities', ['IA & Stratégie', 'Secteur'])
+        if not isinstance(current, list) or len(current) < 2:
+            current = (current if isinstance(current, list) else [current]) + ['Secteur']
+            current = current[:2]
+        print(f"  Priorité A (Tech/IA):  {_cyan(current[0])}")
+        print(f"  Priorité B (Secteur):  {_cyan(current[1])}")
+        print(f"  {_dim('Ex: IA & Stratégie / Finance & Contrôle de gestion')}")
+        val1 = input(f"  Priorité A [{current[0]}] : ").strip()
+        val2 = input(f"  Priorité B [{current[1]}] : ").strip()
+        if val1 or val2:
+            prefs['priorities'] = [
+                val1 if val1 else current[0],
+                val2 if val2 else current[1]
+            ]
+            print(f"  {_green('✅ Priorités:')} {_cyan(prefs['priorities'][0])}  {_dim('|')}  {_cyan(prefs['priorities'][1])}")
+        else:
+            changed = False
+    elif choice == '16':
         print(f"  {_dim('Ouverture du sélecteur de fichier...')}")
         from src.setup import _pick_file
         picked = _pick_file("Sélectionnez votre template .docx", [("Word documents", "*.docx")])
@@ -829,7 +848,6 @@ def _edit_config_interactive(config):
             config['_letter_template_path'] = str(Path(picked).resolve())
             print(f"  {_green('✅ Template enregistré:')} {_cyan(str(Path(picked).resolve()))}")
         else:
-            # Fallback: saisie manuelle
             val = input(f"  Ou collez le chemin [{config.get('_letter_template_path', '')}] : ").strip()
             if val and Path(val).exists():
                 config['_letter_template_path'] = str(Path(val).resolve())
@@ -837,7 +855,7 @@ def _edit_config_interactive(config):
             elif val:
                 print(f"  {_red(f'Fichier introuvable: {val}')}")
                 changed = False
-    elif choice == '16':
+    elif choice == '17':
         print(f"  {_dim('Ouverture du sélecteur de fichier...')}")
         from src.setup import _pick_file
         picked = _pick_file("Sélectionnez votre CV .docx", [("Word documents", "*.docx")])
@@ -852,7 +870,7 @@ def _edit_config_interactive(config):
             elif val:
                 print(f"  {_red(f'Fichier introuvable: {val}')}")
                 changed = False
-    elif choice == '17':
+    elif choice == '18':
         current = config.get('_letters_dir', str(LETTERS_DIR))
         val = input(f"  Dossier lettres [{current}] : ").strip()
         if val:
@@ -862,7 +880,7 @@ def _edit_config_interactive(config):
             print(f"  {_green('✅ Dossier lettres:')} {_cyan(str(p.resolve()))}")
         else:
             changed = False
-    elif choice == '18':
+    elif choice == '19':
         current = prefs.get('sectors', prefs.get('search_queries', []))
         if not isinstance(current, list):
             current = [str(current)]
