@@ -158,6 +158,8 @@ def _serpapi_search(config, query):
             "contract": _guess_contract(r.get("detected_extensions", {})),
             "source": source,
         })
+    if not results:
+        print("  " + _dim(f"(SerpApi: 0 résultats pour '{query[:30]}' — normal si quota épuisé ou marché calme)"))
     return results
 
 
@@ -423,13 +425,13 @@ def scan_all(config):
     print(f"  {_green(str(len(ft_results)) + ' offres')}")
     all_offers += ft_results
 
-    # 2) SerpApi Google Jobs — 1 requête Cat A + 1 requête Cat B
+    # 2) SerpApi Google Jobs — smart: 1 requête, skip 2e si 0 résultats (économise quota)
     print("  📡 SerpApi (Google Jobs)...", end=" ", flush=True)
     sa_results = []
     if q_a:
         sa_results += _serpapi_search(config, q_a[0])
         time.sleep(1)
-    if q_b:
+    if q_b and (not q_a or sa_results):  # skip B si A déjà vide
         sa_results += _serpapi_search(config, q_b[0])
         time.sleep(1)
     print(f"  {_green(str(len(sa_results)) + ' offres')}")
