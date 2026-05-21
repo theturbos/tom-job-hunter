@@ -611,6 +611,11 @@ def run_wizard(existing_config=None, lang="fr"):
     run_hint = t["launch"]
     print(f"  {_green(t['saved'])} : {_dim(str(CONFIG_PATH))}")
     print(f"  {_dim(run_hint)}")
+    print()
+    print(f"  {_yellow('📁 Où tout sera sauvegardé :')}")
+    print(f"  {_dim('Offres    →')} {_cyan(str(Path('data/offres.md')))}  {_dim('(vos annonces filtrées)')}")
+    print(f"  {_dim('Lettres   →')} {_cyan(str(Path('lettres/')))}  {_dim('(.docx et .md)')}")
+    print(f"  {_dim('Candidatures →')} {_cyan(str(Path('data/candidatures.md')))}  {_dim('(suivi)')}")
     print(f"{BAR}\n")
 
     return config

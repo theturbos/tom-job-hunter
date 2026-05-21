@@ -21,6 +21,7 @@ TEXTS = {
     "interview": {"fr": "📞 Entretien obtenu", "en": "📞 Got an interview"},
     "rejected": {"fr": "❌ Rejet reçu", "en": "❌ Received rejection"},
     "letters": {"fr": "✍️  Générer des lettres", "en": "✍️  Generate cover letters"},
+    "open_letters": {"fr": "📂 Voir mes lettres", "en": "📂 Open letters folder"},
     "config": {"fr": "⚙️  Changer la config", "en": "⚙️  Change config"},
     "prompt": {"fr": "🎤 Prompt — Changer mes critères", "en": "🎤 Prompt — Update my criteria"},
     "candidatures": {"fr": "📝 Voir candidatures", "en": "📝 View applications"},

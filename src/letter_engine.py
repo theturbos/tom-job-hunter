@@ -523,7 +523,7 @@ def generate_all(offers, config, profile_data=None, template_path=None):
         if not body_text:
             body_text = _generate_template_letter(offer, config, profile_data)
 
-        lettres_dir = Path("lettres")
+        lettres_dir = Path(config.get("_letters_dir", "lettres"))
         lettres_dir.mkdir(parents=True, exist_ok=True)
 
         docx_path = str(lettres_dir / f"{safe_id}.docx")
