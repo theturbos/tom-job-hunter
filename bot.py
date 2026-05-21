@@ -145,19 +145,25 @@ def menu_config_shortcut(choice):
     print()
     
     # Méthode 1 : coller le chemin directement (le plus fiable)
-    print(f"  {_bold('📂 Coller le chemin du fichier .docx :')}")
-    drag_hint = "  (glissez-déposez le fichier depuis l'explorateur)"
-    print(f"  {_dim(drag_hint)}")
+    print(f"  {_bold('📂 Glissez-déposez votre fichier .docx ici, ou collez son chemin :')}")
+    drag_help = "(depuis l'explorateur Windows, glissez le fichier dans cette fenêtre)"
+    print(f"  {_dim(drag_help)}")
     val = input(f"  {_dim('Chemin')} [{current_display}] : ").strip()
     
-    # Nettoie les guillemets Windows (drag & drop ajoute parfois des quotes)
+    # Nettoie les guillemets Windows (drag & drop ajoute des quotes simples/doubles/courbes)
+    import re as _re
     if val:
-        val = val.strip('"').strip("'").strip()
+        val = _re.sub(r'^[\"\'\u201c\u201d\u2018\u2019]+|[\"\'\u201c\u201d\u2018\u2019]+$', '', val).strip()
     
     if val and Path(val).exists() and Path(val).suffix.lower() == '.docx':
-        config[key] = str(Path(val).resolve())
+        new_path = str(Path(val).resolve())
+        old_name = Path(current).name if current and Path(current).exists() else None
+        config[key] = new_path
         save_config(config)
-        print(f"  {_green('✅ ' + label + ' enregistrée :')} {_bold(Path(val).name)}")
+        if old_name and old_name != Path(new_path).name:
+            print(f"  {_green('✅ ' + label + ' remplacée :')} {_dim(old_name)} {_dim('→')} {_bold(Path(new_path).name)}")
+        else:
+            print(f"  {_green('✅ ' + label + ' enregistrée :')} {_bold(Path(new_path).name)}")
         print()
         return
     elif val and not Path(val).exists():
@@ -165,17 +171,24 @@ def menu_config_shortcut(choice):
         print()
         return
     elif val and Path(val).suffix.lower() != '.docx':
-        print(f"  {_yellow('⚠ Seuls les fichiers .docx sont acceptés.')}")
+        print(f"  {_yellow('⚠ Seuls les fichiers .docx sont acceptés (reçu : ' + Path(val).suffix + ')')}")
         print()
         return
     
     # Méthode 2 : file picker natif (peut échouer sur certaines configs)
-    print(f"  {_dim('💡 Tentative du sélecteur de fichier (peut apparaître derrière PowerShell)...')}")
-    picked = _pick_file(f"Sélectionnez votre {label.lower()} .docx", [("Word documents", "*.docx")])
+    print(f"  {_dim('💡 Ouverture du sélecteur de fichier Windows...')}")
+    picker_hint = "(si rien n'apparaît, vérifiez derrière PowerShell)"
+    print(f"  {_dim(picker_hint)}")
+    picked = _pick_file(f"Sélectionnez votre {label.lower()} .docx", [("Documents Word", "*.docx")])
     if picked:
-        config[key] = str(Path(picked).resolve())
+        new_path = str(Path(picked).resolve())
+        old_name = Path(current).name if current and Path(current).exists() else None
+        config[key] = new_path
         save_config(config)
-        print(f"  {_green('✅ ' + label + ' enregistrée :')} {_bold(Path(picked).name)}")
+        if old_name and old_name != Path(new_path).name:
+            print(f"  {_green('✅ ' + label + ' remplacée :')} {_dim(old_name)} {_dim('→')} {_bold(Path(new_path).name)}")
+        else:
+            print(f"  {_green('✅ ' + label + ' enregistrée :')} {_bold(Path(new_path).name)}")
     else:
         print(f"  {_dim('Aucun fichier sélectionné.')}")
     print()

@@ -26,8 +26,7 @@ def _pick_file(title, filetypes):
     try:
         # Windows: PowerShell
         if sys.platform == "win32":
-            # Construit le filtre: "Word documents|*.docx;*.DOCX"
-            # Élargi pour gérer les variations de casse d'extension
+            # Construit le filtre: "Documents Word|*.docx;*.DOCX"
             filters = '|'.join(f'{t[0]}|{t[1]};{t[1].upper()}' for t in filetypes)
             ps = (
                 f"Add-Type -AssemblyName System.Windows.Forms; "
@@ -35,13 +34,17 @@ def _pick_file(title, filetypes):
                 f"$f.Title = '{title}'; "
                 f"$f.Filter = '{filters}'; "
                 f"$f.FilterIndex = 1; "
-                f"if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{ $f.FileName }} else {{ '' }}"
+                f"if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{ Write-Output $f.FileName }} else {{ Write-Error 'Annulé' }}"
             )
             r = subprocess.run(
                 ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps],
                 capture_output=True, text=True, timeout=60
             )
             path = r.stdout.strip()
+            # Debug: si stderr contient quelque chose hors "Annulé", log
+            stderr = r.stderr.strip()
+            if stderr and 'Annulé' not in stderr:
+                pass  # erreur silencieuse en prod, activable pour debug
             if path and Path(path).exists():
                 return path
         # macOS: osascript
