@@ -124,13 +124,26 @@ def _serpapi_search(config, query):
         "hl": "fr",
         "api_key": key,
     })
-    try:
-        req = urllib.request.Request(f"{_SERPAPI_URL}?{params}")
-        with urllib.request.urlopen(req, context=_SSL_CTX, timeout=30) as resp:
-            data = json.loads(resp.read())
-    except Exception as e:
-        print("  " + _yellow(f"SerpApi: {e}"))
-        return []
+    
+    # Retry: 2 tentatives max, timeout progressif
+    for attempt in (1, 2):
+        try:
+            timeout = 20 if attempt == 1 else 15  # première tentative plus longue
+            req = urllib.request.Request(f"{_SERPAPI_URL}?{params}")
+            with urllib.request.urlopen(req, context=_SSL_CTX, timeout=timeout) as resp:
+                data = json.loads(resp.read())
+            break  # succès → sort de la boucle retry
+        except Exception as e:
+            if attempt == 2:
+                err = str(e)
+                if 'timed out' in err.lower():
+                    print("  " + _yellow(f"SerpApi: timeout (serveur lent ou quota épuisé)"))
+                elif '401' in err or '403' in err:
+                    print("  " + _yellow(f"SerpApi: clé API invalide ou expirée"))
+                else:
+                    print("  " + _yellow(f"SerpApi: {err[:80]}"))
+                return []
+            time.sleep(2)  # pause avant retry
 
     results = []
     for r in data.get("jobs_results", []):
