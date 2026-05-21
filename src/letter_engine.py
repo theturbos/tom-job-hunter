@@ -485,12 +485,13 @@ def _save_letter_md(output_path, company, title, body_text, location="Paris"):
 
 # ── Point d'entrée ─────────────────────────────────────
 
-def generate_all(offers, config, profile_data=None, template_path=None):
+def generate_all(offers, config, profile_data=None, template_path=None, on_progress=None):
     """Génère les lettres pour toutes les offres fournies.
     Priorité :
     1. Template custom .docx fourni (config['_letter_template_path'])
     2. Template .docx par défaut intégré
     3. Fallback .md si python-docx non disponible
+    on_progress(i, total, label) appelé à chaque lettre (optionnel).
     Retourne la liste des lettres générées."""
     if not offers:
         return []
@@ -512,7 +513,8 @@ def generate_all(offers, config, profile_data=None, template_path=None):
         except Exception:
             pass
 
-    for offer in offers:
+    total = len(offers)
+    for i, offer in enumerate(offers, 1):
         company = offer.get("company", "")
         title = offer.get("title", "")
         safe_id = offer.get("id", "").replace("/", "-").replace(" ", "_")[:60]
@@ -521,6 +523,10 @@ def generate_all(offers, config, profile_data=None, template_path=None):
         company_slug = re.sub(r'[^a-zA-Z0-9]+', '-', company.lower()).strip('-')
         title_slug = re.sub(r'[^a-zA-Z0-9]+', '-', title.lower()).strip('-')[:50]
         readable_name = f"{company_slug}_{title_slug}" if company_slug and title_slug else safe_id
+
+        # Callback progression
+        if on_progress:
+            on_progress(i, total, f"{company} — {title[:50]}")
 
         # Génère le corps (LLM ou template)
         body_text = None
@@ -546,11 +552,9 @@ def generate_all(offers, config, profile_data=None, template_path=None):
 
         if docx_ok:
             generated.append({"path": docx_path, "offer_id": offer.get("id"), "format": "docx"})
-            print(f"  ✅ Lettre .docx : {company} — {title[:40]}")
         else:
             # Fallback .md
             _save_letter_md(md_path, company, title, body_text, location=config.get('preferences', {}).get('location', {}).get('city', 'Paris'))
             generated.append({"path": md_path, "offer_id": offer.get("id"), "format": "md"})
-            print(f"  ✅ Lettre .md  : {company} — {title[:40]}")
 
     return generated

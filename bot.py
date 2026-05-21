@@ -399,9 +399,25 @@ def menu_scan():
     if high_score:
         llm_provider = config.get("llm", {}).get("provider", "none")
         if llm_provider != "none":
+            total = len(high_score)
             print(f"\n  {_yellow('✉️  Génération automatique des lettres...')}")
-            print(f"  {_dim(str(len(high_score)) + ' offre(s) avec score ≥ 7')}")
-            letters = generate_all(high_score, config, profile)
+            print(f"  {_dim(str(total) + ' offre(s) avec score ≥ 7')}")
+            
+            # Barre de progression simple
+            bar_width = 30
+            last_bar = ""
+            def progress(i, total_n, label):
+                nonlocal last_bar
+                pct = i / max(total_n, 1)
+                filled = int(pct * bar_width)
+                bar = '█' * filled + '░' * (bar_width - filled)
+                line = f"\r  {_cyan('[' + bar + ']')} {_bold(str(i) + '/' + str(total_n))}  {_dim(label[:50])}"
+                # Print sans newline (overwrite)
+                print(line, end='', flush=True)
+                last_bar = bar
+            
+            letters = generate_all(high_score, config, profile, on_progress=progress)
+            print()  # newline après la barre
             if letters:
                 print(f"  {_green('✅ ' + str(len(letters)) + ' lettre(s) générée(s)')}")
             else:
