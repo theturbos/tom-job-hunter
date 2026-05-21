@@ -135,7 +135,7 @@ cd /d "$InstallDir"
 if exist ".venv\Scripts\activate.bat" call ".venv\Scripts\activate.bat"
 python bot.py
 pause
-"@ | Out-File -FilePath $LauncherPath -Encoding ASCII
+"@ | Out-File -FilePath $LauncherPath -Encoding UTF8
 
 # Supprime anciens raccourcis
 Remove-Item "$ShortcutPath" -Force -ErrorAction SilentlyContinue
