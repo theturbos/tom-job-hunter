@@ -148,51 +148,128 @@ def _serpapi_search(config, query):
     return results
 
 
-# ── Web Search fallback ────────────────────────────────────────
+# ── Web fallback : APIs ATS publiques ─────────────────────────
+
+# Entreprises françaises avec API ATS publique (Lever / Greenhouse / TeamTailor)
+# Ces APIs sont gratuites et ne nécessitent pas d'auth.
+_CAREERS_ATS = [
+    # Format: (company, ats_type, ats_id)
+    ("Mistral AI",      "lever",       "mistral"),
+    ("Hugging Face",    "greenhouse",  "huggingface"),
+    ("Alan",            "lever",       "alan"),
+    ("Qonto",           "lever",       "qonto"),
+    ("Pennylane",       "lever",       "pennylane"),
+    ("Payfit",          "lever",       "payfit"),
+    ("Eleven Labs",     "greenhouse",  "elevenlabs"),
+    ("Poolside",        "lever",       "poolside"),
+]
+
+_ATS_GREENHOUSE_BASE = "https://boards-api.greenhouse.io/v1/boards"
+_ATS_LEVER_BASE = "https://api.lever.co/v0/postings"
+
 
 def _web_search_careers(config):
-    """Recherche web brute sur les pages careers des scale-ups."""
-    queries = config.get("preferences", {}).get("search_queries", [])
-    if not queries:
-        queries = ["AI Strategy Paris", "Head of AI Paris", "AI Product Manager Paris"]
-
+    """Fetch les offres depuis les APIs ATS publiques des scale-ups.
+    
+    Utilise les API Lever et Greenhouse (gratuites, pas d'auth)
+    pour récupérer les offres en temps réel.
+    """
     results = []
     urls_seen = set()
-    for q in queries[:3]:
-        query = f"{q} site:welcometothejungle.com OR site:linkedin.com/jobs OR site:indeed.fr"
+    location_filter = config.get("preferences", {}).get("location", {}).get("city", "Paris")
+    
+    for company, ats_type, ats_id in _CAREERS_ATS[:6]:  # Limite à 6 entreprises
         try:
-            enc_q = urllib.parse.urlencode({"q": query})
+            if ats_type == "lever":
+                url = f"{_ATS_LEVER_BASE}/{ats_id}?mode=json"
+            elif ats_type == "greenhouse":
+                url = f"{_ATS_GREENHOUSE_BASE}/{ats_id}/jobs?content=true"
+            else:
+                continue
+            
             req = urllib.request.Request(
-                f"https://html.duckduckgo.com/html/?{enc_q}",
-                headers={"User-Agent": "Mozilla/5.0"},
+                url,
+                headers={"User-Agent": "TomJobHunter/2.0"},
             )
-            with urllib.request.urlopen(req, context=_SSL_CTX, timeout=15) as resp:
-                text = resp.read().decode("utf-8", errors="ignore")
-            import html
-            for a in re.findall(r'<a rel="nofollow" class="result__a" href="([^"]+)">', text):
-                a = html.unescape(a)  # décode &amp; → &, &#x27; → ', etc.
-                if a in urls_seen:
-                    continue
-                urls_seen.add(a)
-                company = _extract_company(a)
-                title = _extract_title(a)
-                if not title:
-                    continue
-                results.append({
-                    "id": _make_id("", title, company),
-                    "company": company,
-                    "title": title,
-                    "location": "Paris",
-                    "date": "",
-                    "url": a,
-                    "description": "",
-                    "contract": "",
-                    "source": "Web",
-                })
+            with urllib.request.urlopen(req, context=_SSL_CTX, timeout=12) as resp:
+                data = json.loads(resp.read())
+            
+            if ats_type == "lever":
+                postings = data if isinstance(data, list) else []
+                for p in postings:
+                    location = p.get("categories", {}).get("location", "")
+                    # Filtre basique : Paris, France, Remote
+                    if not _location_matches(location, location_filter):
+                        continue
+                    title = p.get("text", "")
+                    link = p.get("hostedUrl", p.get("applyUrl", ""))
+                    if not title or not link:
+                        continue
+                    if link in urls_seen:
+                        continue
+                    urls_seen.add(link)
+                    results.append({
+                        "id": _make_id("", title, company),
+                        "company": company,
+                        "title": title,
+                        "location": location,
+                        "date": datetime.now().strftime("%Y-%m-%d"),
+                        "url": link,
+                        "description": p.get("descriptionPlain", "")[:1500],
+                        "contract": "",
+                        "source": "ATS",
+                    })
+            
+            elif ats_type == "greenhouse":
+                jobs = data.get("jobs", []) if isinstance(data, dict) else []
+                for j in jobs:
+                    loc = str(j.get("location", {}).get("name", "")) if isinstance(j.get("location"), dict) else str(j.get("location", ""))
+                    if not _location_matches(loc, location_filter):
+                        continue
+                    title = j.get("title", "")
+                    link = j.get("absolute_url", "")
+                    if not title or not link:
+                        continue
+                    if link in urls_seen:
+                        continue
+                    urls_seen.add(link)
+                    # Greenhouse a le contenu dans content
+                    desc = ""
+                    if j.get("content"):
+                        desc = str(j["content"])[:1500]
+                    results.append({
+                        "id": _make_id("", title, company),
+                        "company": company,
+                        "title": title,
+                        "location": loc,
+                        "date": j.get("updated_at", datetime.now().strftime("%Y-%m-%d"))[:10],
+                        "url": link,
+                        "description": desc,
+                        "contract": "",
+                        "source": "ATS",
+                    })
         except Exception:
             pass
-        time.sleep(1.5)
+        time.sleep(0.3)
+    
     return results
+
+
+def _location_matches(location, city):
+    """Vérifie si la localisation correspond à la ville cible (filtre souple)."""
+    if not location:
+        return True  # Si pas de location, on garde (peut-être remote)
+    loc_low = location.lower()
+    # Mots-clés qui indiquent que l'offre est pertinente pour Paris
+    keywords = [
+        city.lower(),  # "paris"
+        "france", "remote", "europe", "emea",
+        "île-de-france", "ile-de-france", "idf",
+    ]
+    for kw in keywords:
+        if kw in loc_low:
+            return True
+    return False
 
 
 # ── Helpers ────────────────────────────────────────────────────
@@ -211,27 +288,6 @@ def _guess_contract(ext):
     if isinstance(ext, dict):
         contract = ext.get("contract_type", "") or ext.get("schedule", "")
         return str(contract)
-    return ""
-
-
-def _extract_company(url):
-    parts = url.replace("https://", "").replace("http://", "").split("/")
-    if "linkedin" in url:
-        m = re.search(r'company/([^/?]+)', url)
-        if m:
-            return m.group(1).replace("-", " ").title()
-    if "welcometothejungle" in url:
-        m = re.search(r'/companies/([^/?]+)', url)
-        if m:
-            return m.group(1).replace("-", " ").title()
-    return parts[0].replace("www.", "").split(".")[0].title() if parts else ""
-
-
-def _extract_title(url):
-    parts = url.rstrip("/").split("/")
-    for p in reversed(parts):
-        if len(p) > 10 and not p.startswith("?") and p not in ("jobs", "emploi", "careers"):
-            return p.replace("-", " ").replace("_", " ").title()
     return ""
 
 

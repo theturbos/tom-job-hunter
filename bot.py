@@ -303,6 +303,7 @@ def menu_scan():
     print(f"  {_dim('Tapez [3] pour les voir.')}")
     actual_letters = Path(config.get("_letters_dir", LETTERS_DIR))
     print(f"\n  {_yellow('📁 Où sont mes fichiers ?')}")
+    print(f"  {_dim('Ctrl+Click (ou Cmd+Click sur Mac) pour ouvrir :')}")
     offres_uri = OFFERS_PATH.resolve().as_uri()
     lettres_uri = actual_letters.resolve().as_uri()
     config_uri = CONFIG_PATH.resolve().as_uri()
