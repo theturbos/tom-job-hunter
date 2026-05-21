@@ -625,16 +625,12 @@ def menu_config():
         priorities = priorities[:2]
     p1 = priorities[0] if priorities[0] else '?'
     p2 = priorities[1] if priorities[1] else '?'
-    print(f"  {_dim('├─')} {_bold('Priorités:')}    {_cyan(p1)}  {_dim('|')}  {_cyan(p2)}")
+    print(f"  {_dim('├─')} {_bold('Catégories:')}   {_cyan(p1)}  {_dim('|')}  {_cyan(p2)}")
     prompt_text = prefs.get('natural_language_prompt', '')
     if not prompt_text:
         sq = prefs.get('search_queries', [])
         prompt_text = ', '.join(sq[:3]) if sq else ''
     print(f"  {_dim('├─')} {_bold('Prompt:')}       {_italic(str(prompt_text)[:55])}")
-    sectors = prefs.get('sectors', [])
-    if not sectors:
-        sectors = prefs.get('search_queries', [])
-    print(f"  {_dim('├─')} {_bold('Secteurs:')}     {', '.join(sectors[:4]) if sectors else 'Aucun'}")
     print(f"  {_dim('├─')} {_bold('Score min:')}    {matching.get('min_score', 6)}/10")
     print(f"  {_dim('├─')} {_bold('Âge max:')}      {prefs.get('max_offer_age_days', 10)} jours")
     tone = config.get('letter_tone', 'professionnel direct')
@@ -715,11 +711,11 @@ def _edit_config_interactive(config):
     print(_menu_item(12, "🔑 France Travail API"))
     print(_menu_item(13, "🔑 SerpApi key"))
     print(_menu_item(14, "🤖 LLM provider (OpenAI, DeepSeek, Claude...)"))
-    print(_menu_item(15, "🎯 Priorités de recherche"))  
+    print(_menu_item(15, "🎯 Catégories de recherche"))  
     print(_menu_item(16, "📄 Template lettre .docx"))
     print(_menu_item(17, "📄 CV .docx"))
     print(_menu_item(18, "📂 Dossier lettres"))
-    print(_menu_item(19, "🏭 Secteurs cibles"))
+    print(_dim("  [0] Retour"))
     print(_dim("  [0] Retour"))
 
     choice = input(_dim("  Votre choix : ")).strip()
@@ -830,17 +826,26 @@ def _edit_config_interactive(config):
         if not isinstance(current, list) or len(current) < 2:
             current = (current if isinstance(current, list) else [current]) + ['Secteur']
             current = current[:2]
-        print(f"  Priorité A (Tech/IA):  {_cyan(current[0])}")
-        print(f"  Priorité B (Secteur):  {_cyan(current[1])}")
+        print(f"  Catégorie A (Tech/IA):  {_cyan(current[0])}")
+        print(f"  Catégorie B (Métier):   {_cyan(current[1])}")
         print(f"  {_dim('Ex: IA & Stratégie / Finance & Contrôle de gestion')}")
-        val1 = input(f"  Priorité A [{current[0]}] : ").strip()
-        val2 = input(f"  Priorité B [{current[1]}] : ").strip()
+        val1 = input(f"  Catégorie A [{current[0]}] : ").strip()
+        val2 = input(f"  Catégorie B [{current[1]}] : ").strip()
         if val1 or val2:
             prefs['priorities'] = [
                 val1 if val1 else current[0],
                 val2 if val2 else current[1]
             ]
-            print(f"  {_green('✅ Priorités:')} {_cyan(prefs['priorities'][0])}  {_dim('|')}  {_cyan(prefs['priorities'][1])}")
+            # Dérive automatiquement les secteurs depuis les catégories
+            derived = []
+            for cat in prefs['priorities']:
+                cat_low = cat.lower()
+                for sector in ['ia', 'ai', 'tech', 'data', 'finance', 'fintech', 'banque', 'saas', 'conseil',
+                               'santé', 'automobile', 'luxe', 'marketing', 'rh', 'supply chain', 'logistique']:
+                    if sector in cat_low and sector not in derived:
+                        derived.append(sector)
+            prefs['sectors'] = derived if derived else [prefs['priorities'][1].lower()]
+            print(f"  {_green('✅ Catégories:')} {_cyan(prefs['priorities'][0])}  {_dim('|')}  {_cyan(prefs['priorities'][1])}")
         else:
             changed = False
     elif choice == '16':
@@ -884,17 +889,10 @@ def _edit_config_interactive(config):
         else:
             changed = False
     elif choice == '19':
-        current = prefs.get('sectors', prefs.get('search_queries', []))
-        if not isinstance(current, list):
-            current = [str(current)]
-        print(f"  Secteurs actuels : {_cyan(', '.join(current[:8]))}")
-        print(f"  {_dim('Ex: finance, saas, luxe, santé, automobile, conseil...')}")
-        val = input(f"  Nouveaux secteurs (virgules) : ").strip()
-        if val:
-            prefs['sectors'] = [s.strip() for s in val.split(',') if s.strip()]
-            print(f"  {_green('✅ Secteurs mis à jour:')} {_cyan(', '.join(prefs['sectors'][:8]))}")
-        else:
-            changed = False
+        # Supprimé — les secteurs sont maintenant dérivés automatiquement des catégories
+        print(f"  {_dim('Les secteurs sont dérivés de vos catégories de recherche.')}")
+        print(f"  {_dim('Modifiez-les via le choix 15 — Catégories de recherche.')}")
+        changed = False
     elif choice == '0':
         changed = False
     else:
