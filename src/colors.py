@@ -5,11 +5,13 @@ Strategy:
   - Windows CMD / old PS → try colorama.just_fix_windows_console()
   - macOS / Linux → ANSI works natively
   - If all fails → plain text output (no color codes)
+  - Auto-detects light background → adjusts cyan/dim for contrast
 """
 import sys
 import os
 
 _ENABLED = True  # assume ANSI works by default
+_LIGHT_BG = False  # true if terminal has light background
 
 if sys.platform == "win32":
     # Windows Terminal (WT_SESSION) or PowerShell 6+ (PSModulePath) → ANSI ok
@@ -36,6 +38,19 @@ if sys.platform == "win32":
                 # Final fallback: no colors
                 _ENABLED = False
 
+# Détection fond clair : Windows Terminal/PowerShell → fond clair par défaut
+if sys.platform == "win32":
+    # Si WT_SESSION (Windows Terminal) → souvent config sombre
+    # Si pas WT_SESSION (PowerShell standalone) → souvent config claire
+    if os.environ.get("WT_SESSION"):
+        _LIGHT_BG = False
+    else:
+        # PowerShell standalone → probablement fond blanc
+        _LIGHT_BG = True
+    # COLORTERM=truecolor indique un terminal moderne (souvent sombre)
+    if os.environ.get("COLORTERM") == "truecolor":
+        _LIGHT_BG = False
+
 
 # ── Core helpers ───────────────────────────────────────────────
 
@@ -61,6 +76,9 @@ def yellow(text: str) -> str:
 
 
 def cyan(text: str) -> str:
+    """Cyan adaptatif : bleu foncé sur fond clair, cyan sur fond sombre."""
+    if _LIGHT_BG:
+        return _color("34", text)  # blue (visible on white)
     return _color("36", text)
 
 
@@ -69,6 +87,9 @@ def bold(text: str) -> str:
 
 
 def dim(text: str) -> str:
+    """Dim adaptatif : plus foncé sur fond clair pour rester lisible."""
+    if _LIGHT_BG:
+        return _color("90", text)  # bright black = dark grey (visible on white)
     return _color("2", text)
 
 

@@ -393,7 +393,25 @@ def menu_scan():
     _save_offers(offers)
     _update_doublons(raw, offers)
     print(f"\n  {_green('✅ Scan terminé :')} {_bold(str(len(offers)))} offres pertinentes trouvées.")
-    print(f"  {_dim('Tapez [3] pour les voir.')}")
+    
+    # Auto-génération lettres pour scores ≥ 7
+    high_score = [o for o in offers if o.get('score', 0) >= 7]
+    if high_score:
+        llm_provider = config.get("llm", {}).get("provider", "none")
+        if llm_provider != "none":
+            print(f"\n  {_yellow('✉️  Génération automatique des lettres...')}")
+            print(f"  {_dim(str(len(high_score)) + ' offre(s) avec score ≥ 7')}")
+            letters = generate_all(high_score, config, profile)
+            if letters:
+                print(f"  {_green('✅ ' + str(len(letters)) + ' lettre(s) générée(s)')}")
+            else:
+                print(f"  {_yellow('⚠️  Aucune lettre générée — vérifiez le LLM')}")
+        else:
+            print(f"\n  {_yellow('💡 ' + str(len(high_score)) + ' offre(s) score ≥ 7.')}")
+            print(f"  {_dim('Aucun LLM configuré — lettres template uniquement.')}")
+            print(f"  {_dim('Tapez [7] pour générer les lettres template.')}")
+    
+    print(f"  {_dim('Tapez [3] pour voir les offres.')}")
     actual_letters = Path(config.get("_letters_dir", LETTERS_DIR))
     print(f"\n  {_yellow('📁 Où sont mes fichiers ?')}")
     print(f"  {_dim('Ctrl+Click (ou Cmd+Click sur Mac) pour ouvrir :')}")
