@@ -77,16 +77,16 @@ llm:
   provider: "ollama"
 
   # Modèle utilisé par votre provider (ignoré si ollama)
-  # - mistral:   mistral-small-latest (gratuit), mistral-medium-latest
-  # - openai:    gpt-4o-mini, gpt-4o
-  # - deepseek:  deepseek-chat, deepseek-reasoner
-  # - openrouter: openai/gpt-4o-mini, anthropic/claude-3.5-sonnet, google/gemini-2.0-flash
-  # - groq:      llama-3.3-70b-versatile, mixtral-8x7b-32768
+  # - mistral:   mistral-small-2506 (Small 3.2), ministral-8b-2410
+  # - openai:    gpt-5.4-mini, gpt-5.4
+  # - deepseek:  deepseek-v4-flash, deepseek-v4-pro
+  # - openrouter: openai/gpt-5.4-mini, anthropic/claude-3.5-sonnet, google/gemini-2.0-flash
+  # - groq:      llama-3.3-70b-versatile, openai/gpt-oss-120b
   model: "llama3.2"
 
   # Fallback si le provider principal échoue
   fallback_provider: "mistral"   # laisser vide si pas de fallback
-  fallback_model: "mistral-small-latest"
+  fallback_model: "mistral-small-2506"
 
   # Uniquement pour provider=custom : URL de base de l'API
   base_url: ""

@@ -33,14 +33,19 @@ def _pick_file(title, filetypes):
                 return path
         # macOS: osascript
         elif sys.platform == "darwin":
-            types = ' '.join(f'"{t[1]}"' for t in filetypes)
-            script = f'choose file with prompt "{title}" of type {{{types}}}'
+            # UTI pour .docx = "org.openxmlformats.wordprocessingml.document"
+            uti = "org.openxmlformats.wordprocessingml.document"
+            script = f'choose file with prompt "{title}" of type {{"{uti}"}}'
             r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=30)
             if r.stdout.strip():
-                # osascript returns "alias MacHD:Users:..." → convert to POSIX
-                r2 = subprocess.run(["osascript", "-e", f'POSIX path of ({r.stdout.strip()})'],
-                                    capture_output=True, text=True, timeout=5)
-                path = r2.stdout.strip()
+                # osascript returns "alias MacHD:Users:..." or POSIX path
+                raw = r.stdout.strip()
+                if raw.startswith("alias "):
+                    r2 = subprocess.run(["osascript", "-e", f'POSIX path of ({raw})'],
+                                        capture_output=True, text=True, timeout=5)
+                    path = r2.stdout.strip()
+                else:
+                    path = raw
                 if path and Path(path).exists():
                     return path
         # Linux: zenity
@@ -475,9 +480,10 @@ def run_wizard(existing_config=None, lang="fr"):
         app_desktop = "2. Lancez Ollama (l'application desktop ou ollama serve)"
         print(f"  {_dim(app_desktop)}")
         print(f"  {_dim('3. Téléchargez un modèle léger :')}")
+        print(f"  {_dim('   •')} {_cyan('ollama pull qwen3.5:9b')} {_dim('(4.5 Go — 🤖 meilleur rapport qualité/taille, multilingue)')}")
         print(f"  {_dim('   •')} {_cyan('ollama pull phi3:mini')} {_dim('(2.4 Go — recommandé, compatible CPU)')}")
-        print(f"  {_dim('   •')} {_cyan('ollama pull tinyllama')} {_dim('(637 Mo — ultra-léger, qualité correcte)')}")
         print(f"  {_dim('   •')} {_cyan('ollama pull llama3.2')} {_dim('(2.0 Go — bon équilibre)')}")
+        print(f"  {_dim('   •')} {_cyan('ollama pull tinyllama')} {_dim('(637 Mo — ultra-léger, qualité correcte)')}")
         verif_ollama = '4. Vérifiez que ça marche :'
         ollama_cmd = "ollama run phi3:mini 'Bonjour'"
         print(f"  {_dim(verif_ollama)} {_cyan(ollama_cmd)}")
@@ -500,28 +506,28 @@ def run_wizard(existing_config=None, lang="fr"):
 
     elif llm_choice == "2":
         llm["provider"] = "mistral"
-        model = _ask("Modèle Mistral", default=llm.get("model", "mistral-small-latest"))
+        model = _ask("Modèle Mistral", default=llm.get("model", "mistral-small-2506"))
         llm["model"] = model
         api, _ = _setup_api_key(api, "Mistral", "https://console.mistral.ai/")
 
     elif llm_choice == "3":
         llm["provider"] = "openai"
-        model = _ask("Modèle OpenAI", default=llm.get("model", "gpt-4o-mini"))
+        model = _ask("Modèle OpenAI", default=llm.get("model", "gpt-5.4-mini"))
         llm["model"] = model
         api, _ = _setup_api_key(api, "OpenAI", "https://platform.openai.com/api-keys")
 
     elif llm_choice == "4":
         llm["provider"] = "deepseek"
-        model = _ask("Modèle DeepSeek", default=llm.get("model", "deepseek-chat"))
+        model = _ask("Modèle DeepSeek", default=llm.get("model", "deepseek-v4-flash"))
         llm["model"] = model
         api, _ = _setup_api_key(api, "DeepSeek", "https://platform.deepseek.com/api_keys")
 
     elif llm_choice == "5":
         llm["provider"] = "openrouter"
-        model = _ask("Modèle OpenRouter", default=llm.get("model", "openai/gpt-4o-mini"))
+        model = _ask("Modèle OpenRouter", default=llm.get("model", "openai/gpt-5.4-mini"))
         llm["model"] = model
         print(f"\n  {_dim('Exemples de modèles OpenRouter :')}")
-        print(f"  {_dim('  openai/gpt-4o-mini, anthropic/claude-3.5-sonnet, google/gemini-2.0-flash')}")
+        print(f"  {_dim('  openai/gpt-5.4-mini, anthropic/claude-3.5-sonnet, google/gemini-2.0-flash')}")
         api, _ = _setup_api_key(api, "OpenRouter", "https://openrouter.ai/keys")
 
     elif llm_choice == "6":
@@ -532,7 +538,7 @@ def run_wizard(existing_config=None, lang="fr"):
 
     elif llm_choice == "7":
         llm["provider"] = "custom"
-        model = _ask("Modèle", default=llm.get("model", "gpt-4o-mini"))
+        model = _ask("Modèle", default=llm.get("model", "gpt-5.4-mini"))
         llm["model"] = model
         base_url = _ask("Base URL (endpoint OpenAI-compatible)", default=llm.get("base_url", ""))
         llm["base_url"] = base_url
@@ -558,7 +564,9 @@ def run_wizard(existing_config=None, lang="fr"):
     # Tente un sélecteur de fichier natif si dispo
     cv_path = _pick_file("Sélectionnez votre CV .docx", [("Word documents", "*.docx")])
     if not cv_path:
-        cv_path = _ask("Ou collez le chemin vers votre CV .docx (Entrée = ignorer)",
+        if sys.platform == "darwin":
+            print(f"  {_dim('💡 Astuce Mac : faites glisser votre fichier .docx dans ce terminal et appuyez sur Entrée.')}")
+        cv_path = _ask("Chemin vers votre CV .docx (Entrée = ignorer)",
                         default=config.get("_cv_path", ""),
                         hint="Pour obtenir le chemin : faites un clic droit sur le fichier → Copier en tant que chemin (Windows) ou faites glisser le fichier dans le terminal (Mac)")
     if cv_path:
@@ -578,7 +586,9 @@ def run_wizard(existing_config=None, lang="fr"):
     print(f"  {_dim(ph_text)}")
     tmpl_path = _pick_file("Sélectionnez votre template .docx", [("Word documents", "*.docx")])
     if not tmpl_path:
-        tmpl_path = _ask("Ou collez le chemin vers votre template .docx (Entrée = template par défaut)",
+        if sys.platform == "darwin":
+            print(f"  {_dim('💡 Astuce Mac : faites glisser votre template .docx dans ce terminal.')}")
+        tmpl_path = _ask("Chemin vers votre template .docx (Entrée = template par défaut)",
                           default=config.get("_letter_template_path", ""),
                           hint="Pour obtenir le chemin : clic droit → Copier en tant que chemin (Windows) ou glisser-déposer dans le terminal (Mac)")
     if tmpl_path:

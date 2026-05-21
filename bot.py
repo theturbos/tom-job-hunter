@@ -696,11 +696,11 @@ def _edit_config_interactive(config):
         val = input(f"  Choix [{current}] : ").strip()
         if val == '1': llm['provider'] = 'ollama'; llm['model'] = 'llama3.2'
         elif val == '2':
-            llm['provider'] = 'mistral'; llm['model'] = 'mistral-small-latest'
+            llm['provider'] = 'mistral'; llm['model'] = 'mistral-small-2506'
             mk = input(f"  Mistral API Key : ").strip()
             if mk: api.setdefault('mistral', {})['api_key'] = mk
         elif val == '3':
-            llm['provider'] = 'openai'; llm['model'] = 'gpt-4o-mini'
+            llm['provider'] = 'openai'; llm['model'] = 'gpt-5.4-mini'
             ok = input(f"  OpenAI API Key : ").strip()
             if ok: api.setdefault('openai', {})['api_key'] = ok
         elif val == '4': llm['provider'] = 'none'; llm['model'] = ''

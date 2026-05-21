@@ -39,7 +39,7 @@ def _call_ollama(prompt, model="llama3.2"):
 TOKEN_USAGE = {"input": 0, "output": 0, "calls": 0, "last_error": None}
 
 
-def _call_openai(prompt, api_key, model="gpt-4o-mini", base_url=None):
+def _call_openai(prompt, api_key, model="gpt-5.4-mini", base_url=None):
     """Appelle OpenAI (ou compatible OpenAI API).
     Retourne (content, tokens_input, tokens_output) ou (None, 0, 0)."""
     global TOKEN_USAGE
@@ -116,7 +116,7 @@ def reset_token_usage():
     TOKEN_USAGE = {"input": 0, "output": 0, "calls": 0, "last_error": None}
 
 
-def _call_mistral(prompt, api_key, model="mistral-small-latest"):
+def _call_mistral(prompt, api_key, model="mistral-small-2506"):
     """Appelle Mistral AI (français, gratuit avec tier). API compatible OpenAI."""
     return _call_openai(
         prompt,
@@ -384,12 +384,12 @@ def run(config, prompt_text):
 
     # Mapping provider → (config_key, default_model, base_url)
     PROVIDERS = {
-        "openai":       ("openai",      "gpt-4o-mini",       "https://api.openai.com/v1"),
-        "mistral":      ("mistral",     "mistral-small-latest", "https://api.mistral.ai/v1"),
-        "deepseek":     ("deepseek",    "deepseek-chat",      "https://api.deepseek.com/v1"),
-        "openrouter":   ("openrouter",  "openai/gpt-4o-mini",  "https://openrouter.ai/api/v1"),
+        "openai":       ("openai",      "gpt-5.4-mini",       "https://api.openai.com/v1"),
+        "mistral":      ("mistral",     "mistral-small-2506", "https://api.mistral.ai/v1"),
+        "deepseek":     ("deepseek",    "deepseek-v4-flash",   "https://api.deepseek.com/v1"),
+        "openrouter":   ("openrouter",  "openai/gpt-5.4-mini",  "https://openrouter.ai/api/v1"),
         "groq":         ("groq",        "llama-3.3-70b-versatile", "https://api.groq.com/openai/v1"),
-        "custom":       ("custom",      "gpt-4o-mini",         llm_config.get("base_url", "")),
+        "custom":       ("custom",      "gpt-5.4-mini",         llm_config.get("base_url", "")),
     }
 
     if provider == "ollama":
@@ -408,7 +408,7 @@ def run(config, prompt_text):
         # Fallback automatique : si Ollama échoue, tenter le fallback configuré
         if not result:
             fb_provider = llm_config.get("fallback_provider", "")
-            fb_model = llm_config.get("fallback_model", "mistral-small-latest")
+            fb_model = llm_config.get("fallback_model", "mistral-small-2506")
             if fb_provider and fb_provider in PROVIDERS:
                 key_name, default_model, base_url = PROVIDERS[fb_provider]
                 key = api_config.get(key_name, {}).get("api_key", "")
