@@ -37,7 +37,7 @@ LETTERS_DIR = Path("lettres")
 # ── Couleurs : délégué à src.colors (cross-platform, colorama fallback) ─
 from src.colors import green as _green, red as _red, yellow as _yellow
 from src.colors import cyan as _cyan, bold as _bold, dim as _dim, italic as _italic
-from src.colors import bar as _make_bar
+from src.colors import link as _link, bar as _make_bar
 
 BAR = _make_bar()
 
@@ -125,6 +125,49 @@ def load_config():
 def save_config(config):
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+
+def menu_config_shortcut(choice):
+    """Upload rapide LM (16) ou CV (17) depuis le menu principal."""
+    config = load_config()
+    from src.setup import _pick_file
+    
+    if choice == '16':
+        label = 'Lettre de motivation'
+        key = '_letter_template_path'
+    else:
+        label = 'CV'
+        key = '_cv_path'
+    
+    current = config.get(key, '')
+    if current:
+        try:
+            fname = Path(current).name
+            print(f"  {_dim(label + ' actuelle :')} {_cyan(fname)}")
+        except:
+            pass
+    
+    hint1 = "💡 Une fenêtre de sélection va s'ouvrir (peut apparaître derrière PowerShell)."
+    print(f"  {_dim(hint1)}")
+    hint2 = "Si rien ne s'ouvre, vous pourrez coller le chemin du fichier."
+    print(f"  {_dim(hint2)}")
+    
+    picked = _pick_file(f"Sélectionnez votre {label.lower()} .docx", [("Word documents", "*.docx")])
+    if picked:
+        config[key] = str(Path(picked).resolve())
+        save_config(config)
+        print(f"  {_green('✅ ' + label + ' enregistrée :')} {_cyan(str(Path(picked).resolve()))}")
+    else:
+        val = input(f"  Ou collez le chemin [{current}] : ").strip()
+        if val and Path(val).exists():
+            config[key] = str(Path(val).resolve())
+            save_config(config)
+            print(f"  {_green('✅ ' + label + ' enregistrée.')}")
+        elif val:
+            print(f"  {_red('Fichier introuvable : ' + val)}")
+        else:
+            print(f"  {_dim('Annulé.')}")
+    print()
 
 
 def get_profile_with_cv(config):
@@ -271,13 +314,26 @@ def show_header():
             print(f"  {_red('⚠️  Aucune API configurée — scan impossible. Menu [8]')}")
         if not llm_ok:
             print(f"  {_yellow('💡 Aucun LLM configuré — lettres template uniquement. Menu [8]')}")
+        # Statut CV + LM (toujours affiché, avec nom du fichier si présent)
+        tp = config.get('_letter_template_path', '')
+        cv = config.get('_cv_path', '')
+        if tp and Path(tp).exists():
+            print(f"  {_green('📄 LM :')} {_dim(Path(tp).name)}")
+        else:
+            print(f"  {_yellow('📄 Lettre de motivation : non configurée')}")
+        if cv and Path(cv).exists():
+            print(f"  {_green('📄 CV :')} {_dim(Path(cv).name)}")
+        else:
+            print(f"  {_yellow('📄 CV : non configuré')}")
         print()
     print(f"  {_dim(LICENSE)}")
-    print(f"  {_dim('🔗')} {_cyan(CREATOR_LINKEDIN)}")
-    print(f"  {_dim('🐙')} {_cyan(CREATOR_GITHUB)}")
+    # Liens avec couleur spéciale (pas trop profonde)
+    print(f"  {_bold('🔗')} {_link(CREATOR_LINKEDIN)}")
+    print(f"  {_bold('🐙')} {_link(CREATOR_GITHUB)}")
     print()
 
 def menu_main():
+    config = load_config()
     print()
     print(_menu_item(1, _t("scan")))
     print(_menu_item(2, _t("dashboard")))
@@ -290,6 +346,15 @@ def menu_main():
     print(_menu_item(9, _t("prompt")))
     print(_menu_item(10, _t("candidatures")))
     print(_menu_item(11, _t("open_letters")))
+    print()
+    # Raccourcis CV + LM (avec nom du fichier si présent)
+    tp = config.get('_letter_template_path', '')
+    cv = config.get('_cv_path', '')
+    lm_name = Path(tp).name if tp and Path(tp).exists() else ''
+    cv_name = Path(cv).name if cv and Path(cv).exists() else ''
+    lm_label = '📄 Lettre de motivation' + (f' {_dim("→ " + lm_name)}' if lm_name else f' {_yellow("⚠")}' )
+    cv_label = '📄 CV' + (f' {_dim("→ " + cv_name)}' if cv_name else f' {_yellow("⚠")}' )
+    print(f"  {_dim('[16]')} {lm_label}        {_dim('[17]')} {cv_label}")
     print()
     print(_menu_item('U', _t("update")))
     print(_menu_item(0, _t("quit")))
@@ -485,10 +550,10 @@ def menu_scan():
     lettres_uri = actual_letters.resolve().as_uri()
     config_uri = CONFIG_PATH.resolve().as_uri()
     stats_uri = CANDIDATURES_PATH.resolve().as_uri()
-    print(f"  {_dim('Offres    →')} {_cyan(offres_uri)}")
-    print(f"  {_dim('Lettres   →')} {_cyan(lettres_uri)}")
-    print(f"  {_dim('Config    →')} {_cyan(config_uri)}")
-    print(f"  {_dim('Stats     →')} {_cyan(stats_uri)}")
+    print(f"  {_dim('Offres    →')} {_link(offres_uri)}")
+    print(f"  {_dim('Lettres   →')} {_link(lettres_uri)}")
+    print(f"  {_dim('Config    →')} {_link(config_uri)}")
+    print(f"  {_dim('Stats     →')} {_link(stats_uri)}")
     _show_token_usage()
 
 def _save_offers(new_offers):
@@ -878,7 +943,7 @@ def menu_config():
     print(f"  {_dim('├─')} {_bold('Provider:')}     {_cyan(prov)}  {_dim('(' + mod + ')')}")
     print(f"  {_dim('├─')} {_bold('Template:')}     {_green('✅ ' + str(Path(tp).name)) if tp else _dim('Aucun')}")
     print(f"  {_dim('├─')} {_bold('CV:')}           {_green('✅ ' + str(Path(cv).name)) if cv else _dim('Aucun')}")
-    print(f"  {_dim('└─')} {_bold('Lettres →')}     {_cyan(ld)}")
+    print(f"  {_dim('└─')} {_bold('Lettres →')}     {_link(ld)}")
     print()
     # Menu de modification
     print(f"  {_dim('─── Actions ──────────────────────')}")
@@ -1352,7 +1417,7 @@ def main_loop():
 
         if choice == "0":
             print(f"\n  {_green('TOM V2.0 — À bientôt ! 👋👋')}")
-            print(f"  {_dim(LICENSE)} | {_dim('🔗')} {_cyan(CREATOR_LINKEDIN)} | {_dim('🐙')} {_cyan(CREATOR_GITHUB)}")
+            print(f"  {_dim(LICENSE)} | {_bold('🔗')} {_link(CREATOR_LINKEDIN)} | {_bold('🐙')} {_link(CREATOR_GITHUB)}")
             print()
             break
         elif choice == "1":
@@ -1377,6 +1442,12 @@ def main_loop():
             menu_candidatures()
         elif choice == "11":
             menu_voir_lettres()
+        elif choice == "16":
+            # Raccourci LM
+            menu_config_shortcut('16')
+        elif choice == "17":
+            # Raccourci CV
+            menu_config_shortcut('17')
         elif choice.upper() == "U":
             from src.updater import run_update
             print()

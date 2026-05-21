@@ -7,7 +7,7 @@ Commandes :
   python bot.py guide   → Guide explicatif pour débutants
 """
 from src.colors import green as _green, red as _red, yellow as _yellow
-from src.colors import cyan as _cyan, bold as _bold, dim as _dim, bar as _make_bar
+from src.colors import cyan as _cyan, bold as _bold, dim as _dim, link as _link, bar as _make_bar
 
 import os
 import sys
@@ -727,9 +727,9 @@ def run_wizard(existing_config=None, lang="fr"):
     print(f"  {_dim(run_hint)}")
     print()
     print(f"  {_yellow('📁 Où tout sera sauvegardé :')}")
-    print(f"  {_dim('Offres    →')} {_cyan(str(Path('data/offres.md')))}  {_dim('(vos annonces filtrées)')}")
-    print(f"  {_dim('Lettres   →')} {_cyan(str(Path('lettres/')))}  {_dim('(.docx et .md)')}")
-    print(f"  {_dim('Candidatures →')} {_cyan(str(Path('data/candidatures.md')))}  {_dim('(suivi)')}")
+    print(f"  {_dim('Offres    →')} {_link(str(Path('data/offres.md')))}  {_dim('(vos annonces filtrées)')}")
+    print(f"  {_dim('Lettres   →')} {_link(str(Path('lettres/')))}  {_dim('(.docx et .md)')}")
+    print(f"  {_dim('Candidatures →')} {_link(str(Path('data/candidatures.md')))}  {_dim('(suivi)')}")
     print(f"{BAR}\n")
 
     return config
