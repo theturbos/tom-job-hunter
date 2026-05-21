@@ -26,9 +26,8 @@ preferences:
     country: "France"
     department: "75"
   priorities:
-    - "IA Stratégie"
-    - "Finance+IA"
-    - "Scale-up tech"
+    - "IA & Stratégie"
+    - "Finance & Contrôle de gestion"
   natural_language_prompt: "Head of AI en finance à Paris, CDI"
   max_offer_age_days: 10
   contract_types:

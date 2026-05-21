@@ -150,7 +150,8 @@ def save_candidate_status(offer_id, new_status):
             if spos >= 0:
                 eol = chunk.find("\n", spos)
                 old = chunk[spos:eol] if eol > 0 else chunk[spos:]
-                new_line = f"🚦 STATUT : {new_status} | 📅 Date : {date_str} | 📝 Lettre : ✅ lettres/{offer_id.replace('-', '_')}.md"
+                letters_folder = str(LETTERS_DIR)
+                new_line = f"🚦 STATUT : {new_status} | 📅 Date : {date_str} | 📝 Lettre : ✅ {letters_folder}/{offer_id.replace('-', '_')}.md"
                 text = text[:idx + spos] + new_line + text[idx + spos + len(old):]
                 open(OFFERS_PATH, "w", encoding="utf-8").write(text)
     CANDIDATURES_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -264,9 +265,10 @@ def menu_scan():
     _update_doublons(raw, offers)
     print(f"\n  {_green('✅ Scan terminé :')} {_bold(str(len(offers)))} offres pertinentes trouvées.")
     print(f"  {_dim('Tapez [3] pour les voir.')}")
+    actual_letters = Path(config.get("_letters_dir", LETTERS_DIR))
     print(f"\n  {_yellow('📁 Où sont mes fichiers ?')}")
     print(f"  {_dim('Offres    →')} {_cyan(str(OFFERS_PATH))}")
-    print(f"  {_dim('Lettres   →')} {_cyan(str(LETTERS_DIR))}")
+    print(f"  {_dim('Lettres   →')} {_cyan(str(actual_letters))}")
     print(f"  {_dim('Config    →')} {_cyan(str(CONFIG_PATH))}")
     print(f"  {_dim('Stats     →')} {_cyan(str(CANDIDATURES_PATH))}")
     _show_token_usage()
@@ -320,8 +322,10 @@ def _save_offers(new_offers):
         f"_Dernière mise à jour : {datetime.now().strftime('%d/%m/%Y %H:%M')}_\n",
         "---\n",
     ]
+    cfg = load_config() if CONFIG_PATH.exists() else None
+    labels = get_cat_labels(cfg)
     for o in all_offers:
-        cat_label = CAT_LABELS.get(o.get('category'), 'Secteur')
+        cat_label = labels.get(o.get('category'), 'Secteur')
         status_line = o.get('status', '[ ] Non postulé')
         letter_line = '✅' if o.get('has_letter') else '[ ]'
         lines += [

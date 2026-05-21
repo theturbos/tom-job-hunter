@@ -342,20 +342,33 @@ def _regex_fallback(text):
 
 
 def _enrich_queries(keywords, categories, city):
-    """À partir des mots-clés, génère des search_queries optimisées pour les APIs."""
-    queries = list(keywords[:])
-    # Ajoute les keywords + ville
-    if city and keywords:
-        # Prend le keyword le plus long (souvent le plus descriptif)
-        best_kw = max(keywords, key=len)
-        city_kw = f"{best_kw} {city}"
-        if city_kw not in queries:
-            queries.append(city_kw)
-        # Ajoute aussi les 2 premiers keywords + ville
-        for kw in keywords[:2]:
-            kw_city = f"{kw} {city}"
-            if kw_city not in queries:
-                queries.append(kw_city)
+    """À partir des mots-clés, génère des search_queries optimisées pour les APIs.
+    Split naturel : queries IA/tech d'un côté, secteur métier de l'autre."""
+    # Split keywords par catégorie
+    ia_signals = ["ai", "ia", "llm", "data", "tech", "ml", "python", "nlp", "rag",
+                  "intelligence", "machine learning", "deep learning", "automatisation",
+                  "prompt engineering", "langchain", "llamaindex", "transformation"]
+    kw_a = [kw for kw in keywords if any(s in kw.lower() for s in ia_signals)]
+    kw_b = [kw for kw in keywords if kw not in kw_a]
+
+    # Si tout est parti d'un côté, duplique le keyword le plus long pour l'autre
+    if not kw_a and kw_b:
+        kw_a = [kw_b[-1]] if kw_b else []
+    if not kw_b and kw_a:
+        kw_b = [kw_a[-1]] if kw_a else []
+
+    queries = []
+    # Cat A : keywords IA + ville
+    for kw in kw_a[:3]:
+        queries.append(kw)
+        if city:
+            queries.append(f"{kw} {city}")
+    # Cat B : keywords secteur + ville
+    for kw in kw_b[:3]:
+        queries.append(kw)
+        if city:
+            queries.append(f"{kw} {city}")
+
     # Déduplication + limite à 8
     seen = set()
     clean = []

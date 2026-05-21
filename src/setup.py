@@ -231,19 +231,17 @@ def run_wizard(existing_config=None, lang="fr"):
             "linkedin": "LinkedIn URL",
             "phone": "Téléphone",
             "available": "Disponibilité",
-            "priorities": "🎯 Priorités de recherche",
-            "priorities_help1": "Ces priorités sont vos 3 critères de scoring personnels.",
-            "priorities_help2": "TOM les utilise pour CLASSER vos résultats, pas pour filtrer.",
-            "priorities_help3": "Ex: une offre 'chef de projet' avec IA = bon score si votre Prio1 est 'IA Stratégie'.",
-            "priorities_help4": "\u26a0\ufe0f  Ce ne sont PAS des mots-clés de recherche — c'est votre prompt qui détermine quelles offres remontent.",
-            "priorities_help5": "Les priorités servent UNIQUEMENT à trier les offres déjà trouvées par ordre de pertinence.",
-            "priorities_be_creative": "Soyez créatif — décrivez VOS priorités, pas celles de l'exemple.",
-            "prio1_label": "Priorité 1 (la + importante)",
-            "prio1_hint": "Votre objectif n°1 — pèse 50% du score. Ex: IA & Stratégie, Finance & Contrôle de gestion, Marketing Digital...",
-            "prio2_label": "Priorité 2",
-            "prio2_hint": "Second critère — pèse 30% du score. Ex: B2B SaaS, Industrie, Luxe, Scale-up...",
-            "prio3_label": "Priorité 3",
-            "prio3_hint": "Troisième critère — pèse 20% du score. Ex: International, Management, Freelance...",
+            "priorities": "🎯 Catégories de recherche",
+            "priorities_help1": "TOM recherche les offres dans DEUX catégories distinctes.",
+            "priorities_help2": "Cat A = votre priorité Tech/IA. Cat B = votre secteur métier.",
+            "priorities_help3": "Ex: Cat A 'IA & Stratégie' + Cat B 'Finance & Contrôle de gestion'",
+            "priorities_help4": "\u26a0\ufe0f  Ce ne sont PAS des mots-clés — votre prompt détermine quelles offres remontent.",
+            "priorities_help5": "Chaque catégorie génère ses propres requêtes API pour un scan ciblé.",
+            "priorities_be_creative": "Soyez précis — ces catégories définissent CE que TOM va chercher.",
+            "prio1_label": "Catégorie A — Tech & IA",
+            "prio1_hint": "Votre priorité IA/tech. Ex: IA & Stratégie, Head of AI, IA & Finance, Data & Automatisation...",
+            "prio2_label": "Catégorie B — Secteur métier",
+            "prio2_hint": "Votre secteur ou fonction. Ex: Finance & Contrôle de gestion, Marketing Digital, Supply Chain, Conseil...",
             "skills": "🛠️  Vos compétences clés",
             "skills_help": "Séparez par des virgules. Ex: Python, LLM, RAG, FP&A, Power BI, SQL",
             "education": "🎓 Formation",
@@ -272,19 +270,17 @@ def run_wizard(existing_config=None, lang="fr"):
             "linkedin": "LinkedIn URL",
             "phone": "Phone",
             "available": "Availability",
-            "priorities": "🎯 Search priorities",
-            "priorities_help1": "These are your 3 personal scoring criteria.",
-            "priorities_help2": "TOM uses them to RANK results, not to filter.",
-            "priorities_help3": "Ex: a 'project manager' offer mentioning AI = high score if your Prio1 is 'AI Strategy'.",
-            "priorities_help4": "\u26a0\ufe0f  These are NOT search keywords — your prompt determines which offers appear.",
-            "priorities_help5": "Priorities ONLY sort already-found offers by relevance.",
-            "priorities_be_creative": "Be creative — describe YOUR priorities, not the example ones.",
-            "prio1_label": "Priority 1 (most important)",
-            "prio1_hint": "Your #1 goal — weighs 50% of the score. Ex: AI & Strategy, Finance & Controlling, Digital Marketing...",
-            "prio2_label": "Priority 2",
-            "prio2_hint": "Second criterion — weighs 30% of the score. Ex: B2B SaaS, Industry, Luxury, Scale-up...",
-            "prio3_label": "Priority 3",
-            "prio3_hint": "Third criterion — weighs 20% of the score. Ex: International, Management, Freelance...",
+            "priorities": "🎯 Search categories",
+            "priorities_help1": "TOM searches offers in TWO distinct categories.",
+            "priorities_help2": "Cat A = your Tech/AI priority. Cat B = your industry/function.",
+            "priorities_help3": "Ex: Cat A 'AI & Strategy' + Cat B 'Finance & Controlling'",
+            "priorities_help4": "\u26a0\ufe0f  These are NOT keywords — your prompt determines which offers appear.",
+            "priorities_help5": "Each category generates its own API queries for targeted scanning.",
+            "priorities_be_creative": "Be specific — these categories define WHAT TOM searches for.",
+            "prio1_label": "Category A — Tech & AI",
+            "prio1_hint": "Your AI/tech priority. Ex: AI & Strategy, Head of AI, AI & Finance, Data & Automation...",
+            "prio2_label": "Category B — Industry / Function",
+            "prio2_hint": "Your sector or function. Ex: Finance & Controlling, Digital Marketing, Supply Chain, Consulting...",
             "skills": "🛠️  Key skills",
             "skills_help": "Separate with commas. Ex: Python, LLM, RAG, FP&A, Power BI, SQL",
             "education": "🎓 Education",
@@ -340,11 +336,10 @@ def run_wizard(existing_config=None, lang="fr"):
     print(f"  {_dim(t['priorities_help5'])}")
     print()
     print(f"  {_dim(t['priorities_be_creative'])}")
-    prio1 = _ask(t["prio1_label"], default="IA Stratégie", required=True, hint=t["prio1_hint"], t=t)
-    prio2 = _ask(t["prio2_label"], default="Finance+IA", hint=t["prio2_hint"], t=t)
-    prio3 = _ask(t["prio3_label"], default="Scale-up tech", hint=t["prio3_hint"], t=t)
+    prio1 = _ask(t["prio1_label"], default="IA & Stratégie", required=True, hint=t["prio1_hint"], t=t)
+    prio2 = _ask(t["prio2_label"], default="Finance & Contrôle de gestion", required=True, hint=t["prio2_hint"], t=t)
     prefs = config.get("preferences", {})
-    prefs["priorities"] = [prio1, prio2, prio3]
+    prefs["priorities"] = [prio1, prio2]
     config["preferences"] = prefs
     print()
 
