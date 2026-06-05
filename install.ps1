@@ -49,10 +49,16 @@ if (Test-Path "bot.py") {
         if (Test-Path "$InstallDir\.git") {
             Write-Host "[INFO] Deja installe - mise a jour..." -ForegroundColor Yellow
             Set-Location $InstallDir
-            git pull --ff-only 2>&1 | Out-Null
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "[WARN] git pull echoue, on continue..." -ForegroundColor Yellow
+            # fetch + reset --hard resiste aux force push (contrairement a git pull)
+            git fetch origin --tags --force 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                git reset --hard origin/main 2>&1 | Out-Null
+                git stash pop 2>&1 | Out-Null
+                Write-Host "[OK] Mise a jour terminee" -ForegroundColor Green
+            } else {
+                Write-Host "[WARN] git fetch echoue (pas de connexion?), on continue avec la version locale" -ForegroundColor Yellow
             }
+            Set-Location -
         } else {
             Write-Host "[INFO] Clonage depuis GitHub..." -ForegroundColor Yellow
             git clone --depth 1 $RepoUrl $InstallDir 2>&1 | Out-Null

@@ -144,5 +144,9 @@ def run_update(force=False):
     else:
         print(f"\n  ECHEC {message}")
         print(f"  Vos donnees sont intactes.")
-        print(f"  Reinstallez depuis github.com/theturbos/tom-job-hunter")
+        if _is_git_repo():
+            print(f"  Commande de reparation :")
+            print(f"  cd " + str(_BASE) + " && git fetch origin --tags --force && git reset --hard origin/main")
+        else:
+            print(f"  Re-telechargez l'installateur : github.com/theturbos/tom-job-hunter")
     return success, message

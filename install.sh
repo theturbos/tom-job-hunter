@@ -61,7 +61,12 @@ if [ -f "bot.py" ]; then
 elif [ $HAS_GIT -eq 1 ]; then
     if [ -d "$INSTALL_DIR/.git" ]; then
         echo -e "${Y}📂 Déjà installé dans $INSTALL_DIR — mise à jour...${NC}"
-        cd "$INSTALL_DIR" && git pull --ff-only 2>/dev/null || true
+        cd "$INSTALL_DIR"
+        # fetch + reset --hard resiste aux force push (contrairement a git pull)
+        git fetch origin --tags --force 2>/dev/null || true
+        git reset --hard origin/main 2>/dev/null || true
+        git stash pop 2>/dev/null || true
+        cd - > /dev/null
     else
         echo -e "📂 Clonage dans ${C}$INSTALL_DIR${NC}..."
         if git clone --depth 1 "$REPO" "$INSTALL_DIR" 2>/dev/null; then
