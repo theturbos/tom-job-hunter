@@ -146,7 +146,7 @@ def run_update(force=False):
         print(f"  Vos donnees sont intactes.")
         if _is_git_repo():
             print(f"  Commande de reparation :")
-            print(f"  cd " + str(_BASE) + " && git fetch origin --tags --force && git reset --hard origin/main")
+            print(f"  {_cyan('cd ' + str(_BASE) + ' && git fetch origin --tags --force && git reset --hard origin/main')}")
         else:
             print(f"  Re-telechargez l'installateur : github.com/theturbos/tom-job-hunter")
     return success, message

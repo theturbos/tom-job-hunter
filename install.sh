@@ -62,7 +62,7 @@ elif [ $HAS_GIT -eq 1 ]; then
     if [ -d "$INSTALL_DIR/.git" ]; then
         echo -e "${Y}📂 Déjà installé dans $INSTALL_DIR — mise à jour...${NC}"
         cd "$INSTALL_DIR"
-        # fetch + reset --hard resiste aux force push (contrairement a git pull)
+        # fetch + reset --hard résiste aux force push (contrairement à git pull)
         git fetch origin --tags --force 2>/dev/null || true
         git reset --hard origin/main 2>/dev/null || true
         git stash pop 2>/dev/null || true
