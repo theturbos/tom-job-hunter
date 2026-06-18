@@ -391,16 +391,16 @@ def scan_all(config):
         if isinstance(priorities, list) and len(priorities) >= 1 and priorities[0]:
             priorities = [priorities[0], "Secteur"]
         else:
-            priorities = ["IA & Stratégie", "Secteur"]
+            priorities = ["Tech & IA", "Secteur"]
     # Unicité forcée
     if priorities[0] == priorities[1]:
         priorities[1] = "Secteur"
-    cat_a_label = priorities[0] if priorities[0] else "IA & Stratégie"
+    cat_a_label = priorities[0] if priorities[0] else "Tech & IA"
     cat_b_label = priorities[1] if priorities[1] else "Secteur"
 
     queries = prefs.get("search_queries", [
         "AI Strategy", "Head of AI", "AI Product Manager",
-        "AI Transformation", "FP&A AI", "Finance Transformation"
+        "AI Transformation", "Data Science", "Digital Transformation"
     ])
 
     # Construit les queries Cat A (IA/tech) et Cat B (secteur métier)

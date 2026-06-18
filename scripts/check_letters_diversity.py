@@ -196,7 +196,7 @@ def main():
         expected = target_map.get(name, "")
         allowed = allowed_co_mentions.get(name, [])
         for comp in all_companies:
-            if comp == expected or comp == "Seb Professional" or comp in allowed:
+            if comp == expected or comp in allowed:
                 continue
             if re.search(r'\b' + re.escape(comp) + r'\b', body):
                 print(f"  ⚠️  {name}: mentionne '{comp}' alors que la cible est '{expected}'")

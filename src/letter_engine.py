@@ -78,7 +78,7 @@ def _verify_company_in_body(body, expected_company):
         return body
     # Si l'entreprise n'est pas mentionnée, on l'ajoute dans le closing
     body = body.rstrip()
-    body += f"\n\n{expected_company} est exactement le type d'entreprise où je veux investir mon double profil finance et IA."
+    body += f"\n\n{expected_company} est exactement le type d'entreprise où je veux apporter mon expertise."
     return body
 
 

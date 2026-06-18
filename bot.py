@@ -25,10 +25,10 @@ from src.voir_lettres import open_letters_folder
 
 BOT_NAME = "TOM V2.0"
 # Metadata — overwritten by config.yaml if present
-CREATOR = "Matthias Dubois"
-CREATOR_LINKEDIN = "https://www.linkedin.com/in/matthias-dubois/"
-CREATOR_GITHUB = "https://github.com/theturbos"
-LICENSE = "© Matthias Dubois — Tous droits réservés"
+CREATOR = "Utilisateur"
+CREATOR_LINKEDIN = ""
+CREATOR_GITHUB = ""
+LICENSE = "© TOM Job Hunter — Tous droits réservés"
 CONFIG_PATH = Path("data/config.yaml")
 OFFERS_PATH = Path("data/offres.md")
 DOUBLONS_PATH = Path("data/doublons.md")
@@ -1182,13 +1182,13 @@ def _edit_config_interactive(config):
             if bu: llm['base_url'] = bu
         elif val == '8': llm['provider'] = 'none'; llm['model'] = ''
     elif choice == '19':
-        current = prefs.get('priorities', ['IA & Stratégie', 'Secteur'])
+        current = prefs.get('priorities', ['Tech & IA', 'Secteur'])
         if not isinstance(current, list) or len(current) < 2:
             current = (current if isinstance(current, list) else [current]) + ['Secteur']
             current = current[:2]
         print(f"  Catégorie A (Tech/IA):  {_cyan(current[0])}")
         print(f"  Catégorie B (Métier):   {_cyan(current[1])}")
-        print(f"  {_dim('Ex: IA & Stratégie / Finance & Contrôle de gestion')}")
+        print(f"  {_dim('Ex: Tech & IA / Marketing & Communication')}")
         val1 = input(f"  Catégorie A [{current[0]}] : ").strip()
         val2 = input(f"  Catégorie B [{current[1]}] : ").strip()
         if val1 or val2:
@@ -1306,7 +1306,7 @@ def _edit_config_interactive(config):
 def menu_prompt():
     print(_header("🎤 Mise à jour des critères"))
     print(f"  {_dim('Décrivez ce que vous cherchez en une ou plusieurs phrases :')}")
-    example = 'Ex: "Je cherche un poste de Head of AI dans la finance, Paris uniquement"'
+    example = 'Ex: "Je cherche un poste de Chef de projet digital en région parisienne"'
     print(f"  {_dim(example)}")
     print(f"  {_bold('👉 Appuyez sur ENTREE deux fois pour valider (une fois pour finir la saisie, la seconde pour confirmer)')}")
     print()

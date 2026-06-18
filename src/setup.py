@@ -313,16 +313,16 @@ def run_wizard(existing_config=None, lang="fr"):
             "priorities": "🎯 Catégories de recherche",
             "priorities_help1": "TOM recherche les offres dans DEUX catégories distinctes.",
             "priorities_help2": "Cat A = votre priorité Tech/IA. Cat B = votre secteur métier.",
-            "priorities_help3": "Ex: Cat A 'IA & Stratégie' + Cat B 'Finance & Contrôle de gestion'",
+            "priorities_help3": "Ex: Cat A 'Tech & IA' + Cat B 'Marketing & Communication'",
             "priorities_help4": "\u26a0\ufe0f  Ce ne sont PAS des mots-clés — votre prompt détermine quelles offres remontent.",
             "priorities_help5": "Chaque catégorie génère ses propres requêtes API pour un scan ciblé.",
             "priorities_be_creative": "Soyez précis — ces catégories définissent CE que TOM va chercher.",
             "prio1_label": "Catégorie A — Tech & IA",
-            "prio1_hint": "Votre priorité IA/tech. Ex: IA & Stratégie, Head of AI, IA & Finance, Data & Automatisation...",
+            "prio1_hint": "Votre priorité n°1. Ex: Tech & IA, Marketing Digital, Supply Chain, Data & Automatisation...",
             "prio2_label": "Catégorie B — Secteur métier",
-            "prio2_hint": "Votre secteur ou fonction. Ex: Finance & Contrôle de gestion, Marketing Digital, Supply Chain, Conseil...",
+            "prio2_hint": "Votre secteur ou fonction. Ex: Marketing & Communication, Supply Chain, Finance, Conseil, Luxe...",
             "skills": "🛠️  Vos compétences clés",
-            "skills_help": "Séparez par des virgules. Ex: Python, LLM, RAG, FP&A, Power BI, SQL",
+            "skills_help": "Séparez par des virgules. Ex: Python, SQL, Power BI, Gestion de projet",
             "education": "🎓 Formation",
             "degree": "Diplôme principal",
             "school": "École / Université",
@@ -361,7 +361,7 @@ def run_wizard(existing_config=None, lang="fr"):
             "prio2_label": "Category B — Industry / Function",
             "prio2_hint": "Your sector or function. Ex: Finance & Controlling, Digital Marketing, Supply Chain, Consulting...",
             "skills": "🛠️  Key skills",
-            "skills_help": "Separate with commas. Ex: Python, LLM, RAG, FP&A, Power BI, SQL",
+            "skills_help": "Separate with commas. Ex: Python, SQL, Power BI, Project Management",
             "education": "🎓 Education",
             "degree": "Main degree",
             "school": "School / University",
@@ -402,7 +402,7 @@ def run_wizard(existing_config=None, lang="fr"):
     profile["email"] = _ask(t["email"], default=profile.get("email", ""), hint="Optionnel — ajouté à vos lettres si fourni")
     profile["linkedin"] = _ask(t["linkedin"], default=profile.get("linkedin", ""), hint="Optionnel — affiché sur votre CV et lettres")
     profile["phone"] = _ask(t["phone"], default=profile.get("phone", ""), hint="Optionnel — ajouté à vos lettres si fourni")
-    profile["available"] = _ask(t["available"], default=profile.get("available", "Septembre 2026"), required=True, hint="Date à partir de laquelle vous êtes disponible (ex: Septembre 2026, Immédiat, 3 mois...)")
+    profile["available"] = _ask(t["available"], default=profile.get("available", ""), required=True, hint="Date à partir de laquelle vous êtes disponible (ex: Octobre 2026, Immédiat, 3 mois...)")
     config["profile"] = profile
     print()
 
@@ -415,8 +415,8 @@ def run_wizard(existing_config=None, lang="fr"):
     print(f"  {_dim(t['priorities_help5'])}")
     print()
     print(f"  {_dim(t['priorities_be_creative'])}")
-    prio1 = _ask(t["prio1_label"], default="IA & Stratégie", required=True, hint=t["prio1_hint"], t=t)
-    prio2 = _ask(t["prio2_label"], default="Finance & Contrôle de gestion", required=True, hint=t["prio2_hint"], t=t)
+    prio1 = _ask(t["prio1_label"], default="Tech & IA", required=True, hint=t["prio1_hint"], t=t)
+    prio2 = _ask(t["prio2_label"], default="Marketing & Communication", required=True, hint=t["prio2_hint"], t=t)
     prefs = config.get("preferences", {})
     prefs["priorities"] = [prio1, prio2]
     config["preferences"] = prefs

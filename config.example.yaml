@@ -11,12 +11,10 @@ profile:
   available: "Immédiat / Sept 2026"
   skills:
     - Python
-    - LLM
-    - RAG
-    - FP&A
-    - Power BI
     - SQL
-    - VBA
+    - Power BI
+    - Gestion de projet
+    - Data Analysis
   education_main: "Master Stratégie & Management"
   education_school: "Votre École / Université"
 
@@ -26,9 +24,9 @@ preferences:
     country: "France"
     department: "75"
   priorities:
-    - "IA & Stratégie"
-    - "Finance & Contrôle de gestion"
-  natural_language_prompt: "Head of AI en finance à Paris, CDI"
+    - "Tech & IA"
+    - "Marketing & Communication"
+  natural_language_prompt: "Chef de projet digital à Paris, CDI"
   max_offer_age_days: 10
   contract_types:
     - CDI
