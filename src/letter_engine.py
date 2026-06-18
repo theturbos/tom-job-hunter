@@ -69,9 +69,26 @@ IA_CLEANUP_PATTERNS = [
 ]
 
 
+def _verify_company_in_body(body, expected_company):
+    """Vérifie que l'entreprise cible est mentionnée dans le corps.
+    Si absente, tente de l'injecter intelligemment."""
+    if not expected_company:
+        return body
+    if expected_company.lower() in body.lower():
+        return body
+    # Si l'entreprise n'est pas mentionnée, on l'ajoute dans le closing
+    body = body.rstrip()
+    body += f"\n\n{expected_company} est exactement le type d'entreprise où je veux investir mon double profil finance et IA."
+    return body
+
+
 def _clean_ia_patterns(text):
     """Supprime les patterns typiques des IA du texte généré."""
     result = text
+
+    # Vérifie et supprime les en-têtes parasites (ex: "SPIE Industrie" en haut)
+    result = re.sub(r'^\s*SPIE\s+Industrie\s*\n+', '', result, flags=re.IGNORECASE)
+    result = re.sub(r'^\s*SPIE\s+Batignolles\s*\n+', '', result, flags=re.IGNORECASE)
 
     for pattern, replacement in IA_CLEANUP_PATTERNS:
         result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
@@ -204,11 +221,45 @@ Réponds UNIQUEMENT par le texte de la lettre. Pas de salutation, pas de markdow
 
 # ── Construction du prompt ───────────────────────────────
 
+# Angles de lettre prédéfinis (SOUL.md Règle Zéro)
+_LETTER_ANGLES = [
+    "le builder qui monte un P&L de zéro avec l'IA comme levier",
+    "le financier qui a vécu la transformation IA de l'intérieur",
+    "le PM technique qui code ce qu'il spécifie",
+    "l'expert agentic qui a déployé des LLM en production",
+    "le builder from scratch qui sait ce que ça coûte",
+    "l'intrapreneur qui construit une BU avec obsession du ROI",
+    "le consultant qui prêche par la preuve, pas par les slides",
+    "le pont vivant entre finance et IA — crédible des deux côtés",
+    "le FP&A qui build ses propres outils IA",
+    "le déploiement IA en environnement contraint — sécurité d'abord",
+    "le financier qui comprend la stack IA de l'intérieur",
+    "l'automatisation concrète des process financiers par l'IA",
+    "l'accélérateur IA dans une scale-up SaaS en hypercroissance",
+    "le conseil qui quantifie le ROI en euros, pas en promesses",
+]
+
+_LAST_ANGLES = []  # mémoire des 3 derniers angles utilisés
+
+def _pick_angle(offer):
+    """Choisit un angle distinct pour cette offre, en évitant les 3 derniers utilisés."""
+    import random
+    available = [a for a in _LETTER_ANGLES if a not in _LAST_ANGLES]
+    if not available:
+        available = _LETTER_ANGLES
+    angle = random.choice(available)
+    _LAST_ANGLES.append(angle)
+    if len(_LAST_ANGLES) > 3:
+        _LAST_ANGLES.pop(0)
+    return angle
+
+
 def _build_letter_prompt(offer, config, profile_data):
     """Construit le prompt pour générer une lettre personnalisée."""
     profile = profile_data if profile_data else config.get("profile", {})
     name = profile.get("name", "Le candidat")
     tone = config.get("letter_tone", "professionnel direct")
+    angle = _pick_angle(offer)
 
     skills_text = ""
     if profile_data and profile_data.get("skills"):
@@ -220,25 +271,37 @@ def _build_letter_prompt(offer, config, profile_data):
             [f"{v} {u}" for v, u in profile_data["metrics"][:5]]
         )
 
-    prompt = f"""Génère une lettre de motivation personnalisée.
+    prompt = f"""Génère une lettre de motivation UNIQUE et PERSONNALISÉE.
 
 POSTE: {offer.get('title', '')}
 ENTREPRISE: {offer.get('company', '')}
 LOCALISATION: {offer.get('location', '')}
-DESCRIPTION: {offer.get('description', '')[:400]}
+DESCRIPTION: {offer.get('description', '')[:500]}
 
 CANDIDAT: {name}
 {skills_text}
 {metrics_text}
-DISPONIBILITÉ: {profile.get('available', 'N/A')}
+DISPONIBILITÉ: Septembre 2026
 LANGUES: Français (natif), Anglais (bilingue)
+EXPÉRIENCE: 4+ ans FP&A senior USA/Canada chez Seb Professional. 8000 SKU, 220M€ CA. Infrastructure LLM locale avec RAG sécurisé, agents IA en production (Python, LlamaIndex). MSc Warwick, BBA NEOMA.
 
-TON SOUHAITÉ: {tone}
+TON: {tone}
 
-INSTRUCTION:
-Rédige en français. Personnalise avec les éléments concrets du profil.
-Ne réponds QUE par le texte de la lettre. Pas de markdown, pas de titre.
-Pas de tirets doubles (--) ni de tiret cadratin (—). Utilise des virgules."""
+ANGLE IMPOSÉ POUR CETTE LETTRE (ne pas dévier) : {angle}
+
+RÈGLES ABSOLUES:
+1. Commence par une phrase d'accroche qui part DU POSTE ou de L'ENTREPRISE, pas du candidat. Pas de « Actuellement Analyste Financier Senior basé à Los Angeles... ».
+2. Varie la structure. N'utilise PAS l'enchaînement Seb Professional → SKU → LLM → Warwick.
+3. Mentionne un élément SPÉCIFIQUE à cette offre (produit, chiffre, secteur, enjeu) dans le premier paragraphe.
+4. Chaque paragraphe doit commencer différemment.
+5. Maximum 350 mots.
+6. Pas de « Je me permets de vous contacter », « À l'intersection de », « Dans un monde en constante évolution ».
+7. Pas de tirets doubles (--) ni de tiret cadratin (—).
+8. Le mot « également » maximum UNE fois dans toute la lettre.
+9. Des verbes d'action : j'ai réduit, j'ai construit, j'ai déployé.
+10. Des phrases courtes et longues alternées, rythme naturel.
+
+Réponds UNIQUEMENT par le texte de la lettre. Pas de markdown, pas de titre, pas de signature (pas de « Cordialement » ni « Matthias DUBOIS »)."""
 
     return prompt
 
@@ -441,29 +504,29 @@ def _inject_corps(para, full_text, body_text):
 # ── Fallback: lettre template (sans LLM) ────────────────
 
 def _generate_template_letter(offer, config, profile_data):
-    """Génère une lettre basique sans LLM — mais sans patterns IA."""
+    """Génère une lettre basique sans LLM — dynamique, pas de copier-coller."""
     profile = profile_data if profile_data else config.get("profile", {})
     name = profile.get("name", "Le candidat")
+    first_name = name.split()[0] if name else "Matthias"
     company = offer.get("company", "")
     title = offer.get("title", "")
-
-    skills = profile.get("skills", [])
-    skills_str = ", ".join(skills[:5]) if skills else "mes compétences techniques"
+    description = offer.get("description", "")
+    location = offer.get("location", "Paris")
+    
+    # Extrait le secteur/domaine de la description pour personnaliser
+    desc_first_line = description[:150] if description else f"votre approche de {title.lower()}"
 
     body = f"""Madame, Monsieur,
 
-Je vous adresse ma candidature pour le poste de {title} au sein de {company}.
+{company}, c'est {desc_first_line.strip()}. Vous cherchez un(e) {title}. J'arrive avec quatre ans de FP&A senior chez Seb Professional à Los Angeles — et une infrastructure IA que j'ai construite de mes mains.
 
-Mon parcours en analyse financière et en intelligence artificielle me permet d'apporter un regard différent sur vos défis. J'ai piloté des budgets de 220 millions d'euros, construit des modèles de forecast sur 8000 références, et déployé des systèmes RAG avec des LLM locaux — le tout dans des environnements contraints.
+Je ne coche pas toutes les cases classiques du poste. Mais j'apporte quelque chose que peu de candidats ont : la capacité de parler finance le matin avec un CFO et de débugger un pipeline d'embeddings l'après-midi. J'ai piloté des P&L de 220 millions d'euros, construit des modèles de forecast sur 8000 références, et déployé des agents IA en production sous Python et LlamaIndex. Ce double spectre, je veux le mettre au service de {company}.
 
-{skills_str.capitalize()} — voilà ce que je mets au quotidien au service de mes analyses. Ce double profil finance et IA, je veux l'investir dans une équipe qui transforme concrètement sa façon de travailler.
+Mon infrastructure LLM locale avec RAG sécurisé automatise aujourd'hui des analyses qui prenaient des heures. J'ai réduit le temps de clôture de 75% en industrialisant la chaîne de collecte et d'interprétation des données. C'est ce genre d'impact concret que je veux reproduire chez vous.
 
-{company} m'intéresse parce que votre approche de {offer.get('description', '')[:100]} résonne avec mon expérience.
+Je rentre à Paris en septembre 2026 après quatre ans aux États-Unis. MSc Warwick, BBA NEOMA, bilingue anglais. Si vous cherchez un profil qui ne ressemble pas à votre shortlist classique, parlons-en.
 
-Je suis disponible à partir de {profile.get('available', 'septembre 2026')} pour un échange quand vous le souhaitez.
-
-Cordialement,
-{name}"""
+{first_name} Dubois"""
 
     return _clean_ia_patterns(body)
 
@@ -536,6 +599,9 @@ def generate_all(offers, config, profile_data=None, template_path=None, on_progr
 
         if not body_text:
             body_text = _generate_template_letter(offer, config, profile_data)
+
+        # Vérifie que l'entreprise cible est bien mentionnée
+        body_text = _verify_company_in_body(body_text, company)
 
         lettres_dir = Path(config.get("_letters_dir", "lettres"))
         lettres_dir.mkdir(parents=True, exist_ok=True)
