@@ -24,6 +24,7 @@ from src.i18n import t as _t
 from src.voir_lettres import open_letters_folder
 
 BOT_NAME = "TOM V2.0"
+# Metadata — overwritten by config.yaml if present
 CREATOR = "Matthias Dubois"
 CREATOR_LINKEDIN = "https://www.linkedin.com/in/matthias-dubois/"
 CREATOR_GITHUB = "https://github.com/theturbos"
@@ -109,6 +110,18 @@ def load_config():
         print()
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
+    # Load creator metadata from config if present
+    global CREATOR, CREATOR_LINKEDIN, CREATOR_GITHUB, LICENSE
+    if data:
+        meta = data.get("metadata", {})
+        if meta.get("creator"):
+            CREATOR = meta["creator"]
+        if meta.get("linkedin"):
+            CREATOR_LINKEDIN = meta["linkedin"]
+        if meta.get("github"):
+            CREATOR_GITHUB = meta["github"]
+        if meta.get("license"):
+            LICENSE = meta["license"]
     if not data:
         print(_red('Configuration vide.'))
         print(_dim('Lancement du wizard...'))
@@ -1076,7 +1089,7 @@ def _edit_config_interactive(config):
     elif choice == '10':
         current = profile.get('bio', '')
         print(f"  {_dim('💡 Bio = pitch libre qui résume ton profil. Injecté directement dans les lettres.')}")
-        print(f"  {_dim('   Ex: 4+ ans FP&A senior USA/Canada. 8000 SKU, 220M€ CA. LLM locaux, RAG...')}")
+        print(f"  {_dim('   Ex: 5+ ans dev full-stack React/Node. 3 produits lancés. Open-source contributor.')}")
         val = input(f"  Bio [{current[:50] + '...' if len(current) > 50 else current}] : ").strip()
         if val: profile['bio'] = val
     elif choice == '11':

@@ -361,7 +361,7 @@ _DEFAULT_TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / "lett
 
 
 def _create_default_template_docx():
-    """Charge le template .docx par défaut (cloné du CV Matthias, anonymisé).
+    """Charge le template .docx par défaut (anonymisé, sans données personnelles).
     Retourne un objet Document prêt à l'emploi, ou None si introuvable.
     """
     if _DEFAULT_TEMPLATE.exists():
