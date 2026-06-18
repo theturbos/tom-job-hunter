@@ -40,3 +40,13 @@ Thumbs.db
 
 tom-launcher.bat
 MEMORY.md
+
+# === Fichiers Tom sensibles / locaux (jamais commit) ===
+SOUL.md
+IDENTITY.md
+USER.md
+HEARTBEAT.md
+AGENTS.md
+TOOLS.md
+DREAMS.md
+.openclaw/
