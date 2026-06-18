@@ -1065,15 +1065,30 @@ def _edit_config_interactive(config):
         if val1: profile['education_main'] = val1
         if val2: profile['education_school'] = val2
     elif choice == '7':
+        val = input(f"  Poste actuel [{profile.get('current_position', '')}] : ").strip()
+        if val: profile['current_position'] = val
+    elif choice == '8':
+        val = input(f"  Expérience (résumé) [{profile.get('experience', '')[:60]}...] : ").strip()
+        if val: profile['experience'] = val
+    elif choice == '9':
+        val = input(f"  Langues [{profile.get('languages', '')}] : ").strip()
+        if val: profile['languages'] = val
+    elif choice == '10':
+        current = profile.get('bio', '')
+        print(f"  {_dim('💡 Bio = pitch libre qui résume ton profil. Injecté directement dans les lettres.')}")
+        print(f"  {_dim('   Ex: 4+ ans FP&A senior USA/Canada. 8000 SKU, 220M€ CA. LLM locaux, RAG...')}")
+        val = input(f"  Bio [{current[:50] + '...' if len(current) > 50 else current}] : ").strip()
+        if val: profile['bio'] = val
+    elif choice == '11':
         val1 = input(f"  Ville [{loc.get('city', '')}] : ").strip()
         val2 = input(f"  Pays [{loc.get('country', '')}] : ").strip()
         if val1: loc['city'] = val1
         if val2: loc['country'] = val2
         prefs['location'] = loc
-    elif choice == '8':
+    elif choice == '12':
         val = input(f"  Département [{loc.get('department', '')}] : ").strip()
         if val: loc['department'] = val; prefs['location'] = loc
-    elif choice == '9':
+    elif choice == '13':
         current = matching.get('min_score', 4)
         print(f"  {_dim('🔍 Le score minimum filtre les offres par pertinence.')}")
         hint1 = "   ≥ 7 = très exigeant (top 10-15%)    ≥ 4 = standard (recommandé)"
@@ -1085,7 +1100,7 @@ def _edit_config_interactive(config):
             new_score = int(val)
             matching['min_score'] = max(1, min(10, new_score))
             print(f"  {_green('✅ Score minimum : ' + str(matching['min_score']) + '/10')}")
-    elif choice == '10':
+    elif choice == '14':
         current = prefs.get('max_offer_age_days', 21)
         print(f"  {_dim('📅 Les offres plus anciennes que ce seuil sont ignorées.')}")
         hint1 = "   5-7j = très frais (peu d'offres)    21j = standard (recommandé)"
@@ -1097,23 +1112,23 @@ def _edit_config_interactive(config):
             new_age = int(val)
             prefs['max_offer_age_days'] = max(1, min(90, new_age))
             print(f"  {_green('✅ Âge max : ' + str(prefs['max_offer_age_days']) + ' jours')}")
-    elif choice == '11':
+    elif choice == '15':
         current_tone = config.get('letter_tone', 'professionnel direct')
         print(f"  Ton actuel: {_italic(current_tone)}")
         print(f"  {_dim('Options: professionnel direct / formel classique / décontracté / motivant / autre')}")
         val = input(f"  Nouveau ton [{current_tone}] : ").strip()
         if val: config['letter_tone'] = val
-    elif choice == '12':
+    elif choice == '16':
         ft = api.setdefault('france_travail', {})
         val1 = input(f"  Client ID [{ft.get('client_id', '')}] : ").strip()
         val2 = input(f"  Client Secret [{ft.get('client_secret', '')[:4]}...] : ").strip()
         if val1: ft['client_id'] = val1
         if val2: ft['client_secret'] = val2
-    elif choice == '13':
+    elif choice == '17':
         sa = api.setdefault('serpapi', {})
         val = input(f"  SerpApi Key [{sa.get('api_key', '')[:4]}...] : ").strip()
         if val: sa['api_key'] = val
-    elif choice == '14':
+    elif choice == '18':
         current = llm.get('provider', 'none')
         print(f"  Provider actuel: {_bold(current)}")
         print(f"  {_dim('1=Ollama (local/gratuit)')}")
@@ -1153,7 +1168,7 @@ def _edit_config_interactive(config):
             bu = input(f"  Base URL (endpoint /v1) [{llm.get('base_url', '')}] : ").strip()
             if bu: llm['base_url'] = bu
         elif val == '8': llm['provider'] = 'none'; llm['model'] = ''
-    elif choice == '15':
+    elif choice == '19':
         current = prefs.get('priorities', ['IA & Stratégie', 'Secteur'])
         if not isinstance(current, list) or len(current) < 2:
             current = (current if isinstance(current, list) else [current]) + ['Secteur']
@@ -1180,7 +1195,7 @@ def _edit_config_interactive(config):
             print(f"  {_green('✅ Catégories:')} {_cyan(prefs['priorities'][0])}  {_dim('|')}  {_cyan(prefs['priorities'][1])}")
         else:
             changed = False
-    elif choice == '16':
+    elif choice == '20':
         hint1 = "💡 Une fenêtre de sélection va s'ouvrir (peut apparaître derrière PowerShell)."
         print(f"  {_dim(hint1)}")
         hint2 = "Si rien ne s'ouvre, collez le chemin du fichier."
@@ -1211,7 +1226,7 @@ def _edit_config_interactive(config):
             elif val:
                 print(f"  {_red(f'Fichier introuvable: {val}')}")
                 changed = False
-    elif choice == '17':
+    elif choice == '21':
         hint1 = "💡 Une fenêtre de sélection va s'ouvrir (peut apparaître derrière PowerShell)."
         print(f"  {_dim(hint1)}")
         hint2 = "Si rien ne s'ouvre, collez le chemin vers votre CV."
@@ -1242,7 +1257,7 @@ def _edit_config_interactive(config):
             elif val:
                 print(f"  {_red(f'Fichier introuvable: {val}')}")
                 changed = False
-    elif choice == '18':
+    elif choice == '22':
         current = config.get('_letters_dir', str(LETTERS_DIR))
         val = input(f"  Dossier lettres [{current}] : ").strip()
         if val:
@@ -1252,7 +1267,7 @@ def _edit_config_interactive(config):
             print(f"  {_green('✅ Dossier lettres:')} {_cyan(str(p.resolve()))}")
         else:
             changed = False
-    elif choice == '19':
+    elif choice == '23':
         # Supprimé — les secteurs sont maintenant dérivés automatiquement des catégories
         print(f"  {_dim('Les secteurs sont dérivés de vos catégories de recherche.')}")
         print(f"  {_dim('Modifiez-les via le choix 15 — Catégories de recherche.')}")

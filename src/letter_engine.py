@@ -221,22 +221,22 @@ Réponds UNIQUEMENT par le texte de la lettre. Pas de salutation, pas de markdow
 
 # ── Construction du prompt ───────────────────────────────
 
-# Angles de lettre prédéfinis (SOUL.md Règle Zéro)
+# Angles de lettre génériques (neutres, pour tout utilisateur)
 _LETTER_ANGLES = [
-    "le builder qui monte un P&L de zéro avec l'IA comme levier",
-    "le financier qui a vécu la transformation IA de l'intérieur",
-    "le PM technique qui code ce qu'il spécifie",
-    "l'expert agentic qui a déployé des LLM en production",
-    "le builder from scratch qui sait ce que ça coûte",
-    "l'intrapreneur qui construit une BU avec obsession du ROI",
+    "le builder qui construit de zéro avec obsession du résultat",
+    "le profil qui a vécu la transformation de l'intérieur, pas en consultant",
+    "le technicien qui maîtrise la stack et comprend le business",
+    "l'expert qui a déployé en production, pas seulement en POC",
+    "l'intrapreneur qui sait ce que ça coûte et ce que ça rapporte",
     "le consultant qui prêche par la preuve, pas par les slides",
-    "le pont vivant entre finance et IA — crédible des deux côtés",
-    "le FP&A qui build ses propres outils IA",
-    "le déploiement IA en environnement contraint — sécurité d'abord",
-    "le financier qui comprend la stack IA de l'intérieur",
-    "l'automatisation concrète des process financiers par l'IA",
-    "l'accélérateur IA dans une scale-up SaaS en hypercroissance",
+    "le pont entre deux mondes — crédible des deux côtés",
+    "le profil qui build ses propres outils plutôt que d'attendre la DSI",
+    "l'approche sécurité d'abord, déploiement en environnement contraint",
+    "l'automatisation concrète des processus, avec des chiffres mesurés",
+    "l'accélérateur dans une structure en hypercroissance",
     "le conseil qui quantifie le ROI en euros, pas en promesses",
+    "la vision stratégique nourrie par l'expérience du terrain",
+    "le profil atypique qui ne coche pas toutes les cases mais apporte plus",
 ]
 
 _LAST_ANGLES = []  # mémoire des 3 derniers angles utilisés
@@ -254,23 +254,77 @@ def _pick_angle(offer):
     return angle
 
 
+def _build_profile_text(profile_data):
+    """Construit un texte de profil DYNAMIQUE à partir des données configurées.
+    Rien en dur — tout vient du profil utilisateur."""
+    if not profile_data:
+        return ""
+    
+    parts = []
+    
+    # Nom
+    name = profile_data.get("name", "")
+    if name:
+        parts.append(f"CANDIDAT: {name}")
+    
+    # Titre/poste actuel
+    current = profile_data.get("current_position", "")
+    if current:
+        parts.append(f"POSTE ACTUEL: {current}")
+    
+    # Expérience
+    experience = profile_data.get("experience", "")
+    if experience:
+        parts.append(f"EXPÉRIENCE: {experience}")
+    
+    # Formation
+    education = profile_data.get("education", "")
+    if education:
+        parts.append(f"FORMATION: {education}")
+    
+    # Compétences
+    skills = profile_data.get("skills", [])
+    if skills:
+        parts.append(f"COMPÉTENCES: {', '.join(skills[:8])}")
+    
+    # Réalisations chiffrées
+    metrics = profile_data.get("metrics", [])
+    if metrics:
+        if isinstance(metrics[0], (list, tuple)):
+            metrics_str = ", ".join([f"{v} {u}" for v, u in metrics[:5]])
+        else:
+            metrics_str = ", ".join(str(m) for m in metrics[:5])
+        parts.append(f"RÉALISATIONS: {metrics_str}")
+    
+    # Disponibilité
+    available = profile_data.get("available", "")
+    if available:
+        parts.append(f"DISPONIBILITÉ: {available}")
+    
+    # Langues
+    languages = profile_data.get("languages", "")
+    if languages:
+        parts.append(f"LANGUES: {languages}")
+    
+    # Bio libre (le plus important — l'utilisateur écrit son pitch)
+    bio = profile_data.get("bio", "")
+    if bio:
+        parts.append(f"BIO: {bio}")
+    
+    return "\n".join(parts)
+
+
 def _build_letter_prompt(offer, config, profile_data):
-    """Construit le prompt pour générer une lettre personnalisée."""
+    """Construit le prompt pour générer une lettre personnalisée et UNIQUE.
+    Tout est dynamique — aucune donnée personnelle en dur."""
     profile = profile_data if profile_data else config.get("profile", {})
     name = profile.get("name", "Le candidat")
     tone = config.get("letter_tone", "professionnel direct")
     angle = _pick_angle(offer)
-
-    skills_text = ""
-    if profile_data and profile_data.get("skills"):
-        skills_text = "Compétences du CV: " + ", ".join(profile_data["skills"][:8])
-
-    metrics_text = ""
-    if profile_data and profile_data.get("metrics"):
-        metrics_text = "Réalisations chiffrées: " + ", ".join(
-            [f"{v} {u}" for v, u in profile_data["metrics"][:5]]
-        )
-
+    
+    # Construit le texte de profil dynamiquement
+    profile_text = _build_profile_text(profile)
+    
     prompt = f"""Génère une lettre de motivation UNIQUE et PERSONNALISÉE.
 
 POSTE: {offer.get('title', '')}
@@ -278,30 +332,25 @@ ENTREPRISE: {offer.get('company', '')}
 LOCALISATION: {offer.get('location', '')}
 DESCRIPTION: {offer.get('description', '')[:500]}
 
-CANDIDAT: {name}
-{skills_text}
-{metrics_text}
-DISPONIBILITÉ: Septembre 2026
-LANGUES: Français (natif), Anglais (bilingue)
-EXPÉRIENCE: 4+ ans FP&A senior USA/Canada chez Seb Professional. 8000 SKU, 220M€ CA. Infrastructure LLM locale avec RAG sécurisé, agents IA en production (Python, LlamaIndex). MSc Warwick, BBA NEOMA.
+{profile_text}
 
 TON: {tone}
 
 ANGLE IMPOSÉ POUR CETTE LETTRE (ne pas dévier) : {angle}
 
 RÈGLES ABSOLUES:
-1. Commence par une phrase d'accroche qui part DU POSTE ou de L'ENTREPRISE, pas du candidat. Pas de « Actuellement Analyste Financier Senior basé à Los Angeles... ».
-2. Varie la structure. N'utilise PAS l'enchaînement Seb Professional → SKU → LLM → Warwick.
+1. Commence par une phrase d'accroche qui part DU POSTE ou de L'ENTREPRISE, pas du candidat.
+2. Varie la structure — pas de pattern répété d'une lettre à l'autre.
 3. Mentionne un élément SPÉCIFIQUE à cette offre (produit, chiffre, secteur, enjeu) dans le premier paragraphe.
 4. Chaque paragraphe doit commencer différemment.
 5. Maximum 350 mots.
-6. Pas de « Je me permets de vous contacter », « À l'intersection de », « Dans un monde en constante évolution ».
+6. JAMAIS de clichés: « Je me permets de vous contacter », « À l'intersection de », « Dans un monde en constante évolution ».
 7. Pas de tirets doubles (--) ni de tiret cadratin (—).
 8. Le mot « également » maximum UNE fois dans toute la lettre.
-9. Des verbes d'action : j'ai réduit, j'ai construit, j'ai déployé.
+9. Des verbes d'action concrets: j'ai réduit, j'ai construit, j'ai déployé.
 10. Des phrases courtes et longues alternées, rythme naturel.
 
-Réponds UNIQUEMENT par le texte de la lettre. Pas de markdown, pas de titre, pas de signature (pas de « Cordialement » ni « Matthias DUBOIS »)."""
+Réponds UNIQUEMENT par le texte de la lettre. Pas de markdown, pas de titre, pas de signature."""
 
     return prompt
 
@@ -504,30 +553,57 @@ def _inject_corps(para, full_text, body_text):
 # ── Fallback: lettre template (sans LLM) ────────────────
 
 def _generate_template_letter(offer, config, profile_data):
-    """Génère une lettre basique sans LLM — dynamique, pas de copier-coller."""
+    """Génère une lettre basique sans LLM — entièrement dynamique.
+    Construit à partir du profil configuré, aucune donnée en dur."""
     profile = profile_data if profile_data else config.get("profile", {})
     name = profile.get("name", "Le candidat")
-    first_name = name.split()[0] if name else "Matthias"
+    first_name = name.split()[0] if name else ""
     company = offer.get("company", "")
     title = offer.get("title", "")
     description = offer.get("description", "")
-    location = offer.get("location", "Paris")
     
-    # Extrait le secteur/domaine de la description pour personnaliser
-    desc_first_line = description[:150] if description else f"votre approche de {title.lower()}"
-
+    # Éléments de profil dynamiques
+    current_pos = profile.get("current_position", "mon poste actuel")
+    experience = profile.get("experience", "mon expérience")
+    skills = profile.get("skills", [])
+    skills_str = ", ".join(skills[:4]) if skills else "mes compétences"
+    education = profile.get("education", "")
+    available = profile.get("available", "dès que possible")
+    languages = profile.get("languages", "")
+    bio = profile.get("bio", "")
+    
+    # Utilise la bio si dispo, sinon construit un résumé basique
+    if bio:
+        profile_summary = bio
+    elif experience:
+        profile_summary = experience
+    else:
+        profile_summary = f"{current_pos}. {skills_str}."
+    
+    # Extrait le début de la description pour personnaliser l'accroche
+    desc_snippet = description[:120].strip() if description else f"votre approche de {title.lower()}"
+    # Tronque proprement au dernier mot
+    if len(desc_snippet) >= 120 and ' ' in desc_snippet:
+        desc_snippet = desc_snippet[:desc_snippet.rindex(' ')] + "..."
+    
+    # Construction de la lettre avec les variables du profil
+    education_line = f"{education}. " if education else ""
+    languages_line = f"{languages}. " if languages else ""
+    
     body = f"""Madame, Monsieur,
 
-{company}, c'est {desc_first_line.strip()}. Vous cherchez un(e) {title}. J'arrive avec quatre ans de FP&A senior chez Seb Professional à Los Angeles — et une infrastructure IA que j'ai construite de mes mains.
+{company}, c'est {desc_snippet}. Vous cherchez un profil pour {title}. J'arrive avec {experience[:80] if experience else 'une expérience solide'} — et une vraie envie d'impact.
 
-Je ne coche pas toutes les cases classiques du poste. Mais j'apporte quelque chose que peu de candidats ont : la capacité de parler finance le matin avec un CFO et de débugger un pipeline d'embeddings l'après-midi. J'ai piloté des P&L de 220 millions d'euros, construit des modèles de forecast sur 8000 références, et déployé des agents IA en production sous Python et LlamaIndex. Ce double spectre, je veux le mettre au service de {company}.
+{profile_summary[:200]}. C'est ce bagage que je veux mettre au service de {company}.
 
-Mon infrastructure LLM locale avec RAG sécurisé automatise aujourd'hui des analyses qui prenaient des heures. J'ai réduit le temps de clôture de 75% en industrialisant la chaîne de collecte et d'interprétation des données. C'est ce genre d'impact concret que je veux reproduire chez vous.
+{skills_str.capitalize()} — voilà ce qui me permet d'apporter des résultats concrets. J'ai l'habitude des environnements exigeants où l'autonomie et l'initiative comptent autant que la compétence technique.
 
-Je rentre à Paris en septembre 2026 après quatre ans aux États-Unis. MSc Warwick, BBA NEOMA, bilingue anglais. Si vous cherchez un profil qui ne ressemble pas à votre shortlist classique, parlons-en.
-
-{first_name} Dubois"""
-
+{education_line}{languages_line}Je suis disponible {available} pour un échange quand vous le souhaitez."""
+    
+    # Signature avec le prénom seulement si dispo
+    if first_name:
+        body += f"\n\n{first_name}"
+    
     return _clean_ia_patterns(body)
 
 def _save_letter_md(output_path, company, title, body_text, location="Paris"):
